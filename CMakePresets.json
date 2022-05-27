@@ -15,8 +15,32 @@
             "installDir": "../${presetName}"
         },
         {
-            "name": "conf-windows-common",
+            "name": "conf-windows-common-msvc",
             "description": "Windows settings for MSBuild toolchain that apply to msvc and clang",
+            "hidden": true,
+            "inherits": "conf-common",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "toolset": {
+                "value": "host=x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "ENABLE_CPPCHECK_DEFAULT": "FALSE",
+                "ENABLE_CLANG_TIDY_DEFAULT": "FALSE",
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
+            }
+        },
+        {
+            "name": "conf-windows-common-clang",
+            "description": "Windows settings for MSBuild toolchain that apply to clang",
             "hidden": true,
             "inherits": "conf-common",
             "condition": {
@@ -42,7 +66,7 @@
             "name": "msvc-Debug",
             "displayName": "msvc-Debug",
             "description": "Target Windows with the msvc compiler, debug build type",
-            "inherits": "conf-windows-common",
+            "inherits": "conf-windows-common-msvc",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "cl",
                 "CMAKE_CXX_COMPILER": "cl",
@@ -54,7 +78,7 @@
             "name": "msvc-RelWithDebInfo",
             "displayName": "msvc-RelWithDebInfo",
             "description": "win32 target",
-            "inherits": "conf-windows-common",
+            "inherits": "conf-windows-common-msvc",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "cl",
                 "CMAKE_CXX_COMPILER": "cl",
@@ -66,19 +90,20 @@
             "name": "msvc-Release",
             "displayName": "msvc-Release",
             "description": "win32 target",
-            "inherits": "conf-windows-common",
+            "inherits": "conf-windows-common-msvc",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "cl",
                 "CMAKE_CXX_COMPILER": "cl",
                 "CMAKE_BUILD_TYPE": "Release",
-                "ENABLE_DEVELOPER_MODE": "ON"
+                "ENABLE_DEVELOPER_MODE": "OFF"
              }
         },
         {
-            "name": "clang-Debug",
-            "displayName": "clang-Debug",
+            "name": "clang-debug",
+            "displayName": "clang-debug",
             "description": "win32 target",
-            "inherits": "conf-windows-common",
+            "hidden": true,
+            "inherits": "conf-windows-common-clang",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang-cl",
                 "CMAKE_CXX_COMPILER": "clang-cl",
@@ -94,7 +119,8 @@
             "name": "clang-RelWithDebInfo",
             "displayName": "clang-RelWithDebInfo",
             "description": "win32 target",
-            "inherits": "conf-windows-common",
+            "hidden": true,
+            "inherits": "conf-windows-common-clang",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang-cl",
                 "CMAKE_CXX_COMPILER": "clang-cl",
@@ -110,7 +136,8 @@
             "name": "clang-Release",
             "displayName": "clang-Release",
             "description": "win32 target",
-            "inherits": "conf-windows-common",
+            "hidden": true,
+            "inherits": "conf-windows-common-clang",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang-cl",
                 "CMAKE_CXX_COMPILER": "clang-cl",
@@ -137,7 +164,7 @@
             }
         },
         {
-            "name": "test-msvc-Debug",
+            "name": "test-msvc-debug",
             "displayName": "Strict",
             "description": "Enable output and stop on failure",
             "inherits": "test-common",
@@ -158,9 +185,10 @@
             "configurePreset": "msvc-Release"
         },
         {
-            "name": "test-clang-Debug",
+            "name": "test-clang-debug",
             "displayName": "Strict",
             "description": "Enable output and stop on failure",
+            "hidden": true,
             "inherits": "test-common",
             "configurePreset": "clang-Debug"
         },
@@ -168,6 +196,7 @@
             "name": "test-clang-RelWithDebInfo",
             "displayName": "Strict",
             "description": "Enable output and stop on failure",
+            "hidden": true,
             "inherits": "test-common",
             "configurePreset": "clang-RelWithDebInfo"
         },
@@ -175,6 +204,7 @@
             "name": "test-clang-Release",
             "displayName": "Strict",
             "description": "Enable output and stop on failure",
+            "hidden": true,
             "inherits": "test-common",
             "configurePreset": "clang-Release"
         }
