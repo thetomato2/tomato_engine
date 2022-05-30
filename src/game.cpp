@@ -16,8 +16,11 @@ struct data_paths
 internal void on_resize(game_state *state, window_dims win_dims)
 {
     f32 aspect = scast(f32, win_dims.width) / scast(f32, win_dims.height);
-    state->wvp.proj =
-        mat::proj_persp(scast(f32, win_dims.width) / scast(f32, win_dims.height), state->fov);
+#if 1
+    state->wvp.proj = mat::proj_persp(aspect, state->fov, 1.0f, 100.0f);
+#else
+    state->wvp.proj = mat::proj_ortho(aspect);
+#endif
 }
 
 bool init(thread_context *thread, game_memory *memory)
@@ -163,6 +166,7 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
 
     ImGui::Begin("Scene");
     ImGui::ColorEdit4("Clear", (f32 *)&state->clear_color.e[0]);
+    ImGui::SliderFloat("fov", &state->fov, 0.1f, 3.0f);
     ImGui::End();
 
     state->imgui = false;
@@ -193,11 +197,11 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
 
     m4 model = mat::translate({ 0.0f, 0.0f, 4.0f });
     state->z_rot += dt;
-    m4 rot          = mat::rot_z(state->z_rot) * mat::rot_x(state->z_rot);
-    model           = rot * model;
-    cons->transform = model;
-    // cons->projection = state->wvp.proj;
-    cons->light_v3 = { 1.0f, -1.0f, 1.0f };
+    m4 rot           = mat::rot_z(state->z_rot) * mat::rot_x(state->z_rot);
+    model            = rot * model;
+    cons->transform  = model;
+    cons->projection = state->wvp.proj;
+    cons->light_v3   = { 1.0f, -1.0f, 1.0f };
 
     gfx->device_context->Unmap(state->d3d.const_buf, 0);
 

@@ -1321,53 +1321,28 @@ inline m4 transpose(m4 a)
     return res;
 }
 
-// FIXME: this doesn't work??
-inline m4 proj_persp(f32 fov_y, f32 aspect, f32 n, f32 f)
+inline m4 proj_persp(f32 aspect_ratio, f32 focal_len, f32 n, f32 f)
 {
-    m4 res;
-
-    f32 top    = n * tanf(fov_y * 0.5f);
-    f32 bottom = -top;
-    f32 right  = top * aspect;
-    f32 left   = -right;
-
-    // MatrixFrustum(-right, right, -top, top, near, far);
-    f32 rl = right - left;
-    f32 tb = top - bottom;
-    f32 fn = f - n;
-
-    res.e[0]  = (n * 2.0f) / rl;
-    res.e[5]  = (n * 2.0f) / tb;
-    res.e[8]  = (right + left) / rl;
-    res.e[9]  = (top + bottom) / tb;
-    res.e[10] = -(f + n) / fn;
-    res.e[11] = -1.0f;
-    res.e[14] = -(f * n * 2.0f) / fn;
-
-    return res;
-}
-
-inline m4 proj_persp(f32 aspect_ratio, f32 focal_len)
-{
-    f32 a = 1.0f;
-    f32 b = aspect_ratio;
-    // f32 c = (1.0f / focal_len);
-    f32 c = focal_len;
-
-    f32 n = 0.1f;     // near clip
-    f32 f = 1000.0f;  // far clip
-
-    // ortho
-#if 1
+    f32 e = 1.0f / tanf(focal_len / 2.0f);
     f32 d = (n + f) / (n - f);
-    f32 e = (2.0f * f * n) / (n - f);
-#else
-    f32 d = 2.0f / (n - f);
-    f32 e = (n + f) / (n - f);
-#endif
+    f32 q = (2.0f * f * n) / (n - f);
 
-    m4 res = { a * c, 0.0f, 0.0f, 0.0f, 0.0f, b * c, 0.0f,  0.0f,
-               0.0f,  0.0f, d,    e,    0.0f, 0.0f,  -1.0f, 0.0f };
+    m4 res = { e / aspect_ratio,
+               0.0f,
+               0.0f,
+               0.0f,
+               0.0f,
+               e,
+               0.0f,
+               0.0f,
+               0.0f,
+               0.0f,
+               d,
+               1.0f,
+               0.0f,
+               0.0f,
+               q,
+               0.0f };
 
     return res;
 }
@@ -1378,7 +1353,7 @@ inline m4 proj_ortho(f32 aspect_ratio)
     f32 b = aspect_ratio;
 
     m4 res = { a,    0.0f, 0.0f, 0.0f, 0.0f, b,    0.0f, 0.0f,
-               0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+               0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
     return res;
 }

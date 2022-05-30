@@ -963,7 +963,7 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
 
         last_counter = end_counter;
 
-        display_buffer_in_window(hdc, g_back_buffer, 0, 0, g_win_dim.width, g_win_dim.height);
+        // display_buffer_in_window(hdc, g_back_buffer, 0, 0, g_win_dim.width, g_win_dim.height);
 
         DWORD play_cursor;
         DWORD write_cursor;
