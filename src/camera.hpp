@@ -35,28 +35,18 @@ struct camera
     v3 up;
     v3 forward;
     v3 target_pos;
+
+    void set_pos(v3 pos);
+    v3 get_pos();
+    m4 view();
 };
-
-inline v3 camera_set_pos(v3 pos)
-{
-#if Z_UP
-    return { pos.x, pos.z, -pos.y };
-#else
-    return pos;
-#endif
-}
-
-inline v3 camera_get_pos(v3 pos)
-{
-#if Z_UP
-    return { pos.x, -pos.z, pos.y };
-#else
-    return pos;
-#endif
-}
 
 camera camera_init();
 camera camera_init(v3 pos, v3 target, v3 up);
+// NOTE: the camera pos might not be affected by any global world space chanages that affect the
+// cardinal axis
+void camera_set_pos(camera *cam, v3 pos);
+v3 camera_get_pos(camera *cam);
 m4 camera_view(camera cam);
 void move_camera(camera *cam, cam_mov_dir dir, f32 dt);
 void move_camera_distance(camera *cam, cam_mov_dir dir, f32 dist);

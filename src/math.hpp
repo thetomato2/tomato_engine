@@ -1441,12 +1441,8 @@ inline m4 get_uvn(v3 forward, v3 up, v3 pos)
     return res;
 }
 
-// TODO: ifdef stdio.h?
-inline void print_m4(m4 a)
+inline m4 inverse(m4 a)
 {
-    for (s32 i = 0; i < 4; ++i) {
-        printf("%f, %f, %f, %f\n", a.m[i][0], a.m[i][1], a.m[i][2], a.m[i][3]);
-    }
 }
 
 }  // namespace mat
@@ -1683,6 +1679,26 @@ inline v3 barycenter(rect3 a, v3 p)
 
 }  // namespace rec
 
+inline void print_m4(m4 a)
+{
+    for (s32 i = 0; i < 4; ++i) {
+        printf("%f, %f, %f, %f", a.m[i][0], a.m[i][1], a.m[i][2], a.m[i][3]);
+    }
+}
+inline void print_v2(v2 a)
+{
+    printf("%f, %f", a.x, a.y);
+}
+
+inline void print_v3(v3 a)
+{
+    printf("%f, %f, %f", a.x, a.y, a.z);
+}
+
+inline void print_v4(v4 a)
+{
+    printf("%f, %f, %f, %f", a.x, a.y, a.z, a.w);
+}
 }  // namespace tom
 
 #endif  // TOMATO_MATH_HPP_

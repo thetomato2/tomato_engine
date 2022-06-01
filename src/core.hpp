@@ -17,13 +17,18 @@
 #include <windows.h>
 #include <tchar.h>
 
-#include <imgui.h>
-#include <imgui_impl_win32.h>
-#include <imgui_impl_dx11.h>
+#include <xinput.h>
+#include <mmdeviceapi.h>
+#include <audioclient.h>
+
 
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 #include "directx.hpp"
+
+#include <imgui.h>
+#include <imgui_impl_win32.h>
+#include <imgui_impl_dx11.h>
 
 // NOTE: for grep purposes
 #define scast(t, v) static_cast<t>(v)
@@ -162,6 +167,7 @@ byt (&ArrayCountHelper(T (&)[N]))[N];
 
 #include "math.hpp"
 #include "color.hpp"
+#include "memory.hpp"
 
 namespace tom
 {
@@ -176,46 +182,6 @@ struct window_dims
     s32 width;
     s32 height;
 };
-
-struct memory_arena
-{
-    szt size;
-    u8 *base;
-    szt used;
-};
-
-inline void init_arena(memory_arena *arena, const szt size, void *base)
-{
-    arena->size = size;
-    arena->base = scast(byt *, base);
-    arena->used = 0;
-}
-
-inline void *push_size(memory_arena *arena, szt size)
-{
-    TOM_ASSERT((arena->used + size) <= arena->size);
-    void *result = arena->base + arena->used;
-    arena->used += size;
-
-    return result;
-}
-
-inline void zero_size(void *ptr, szt size)
-{
-#if USE_CRT
-    memset(ptr, 0, size);
-#else
-    // TODO: profile this for performance
-    byt *byte = scast(byt *, ptr);
-    while (size--) {
-        *byte++ = 0;
-    }
-#endif
-}
-
-#define PUSH_STRUCT(arena, type)       (type *)push_size(arena, sizeof(type))
-#define PUSH_ARRAY(arena, count, type) (type *)push_size(arena, (count * sizeof(type)))
-#define ZERO_STRUCT(inst)              zero_size(&(inst), sizeof(inst))
 
 // Generic flag stuff
 
@@ -240,23 +206,6 @@ inline u32 safe_truncate_u32_to_u64(u64 value)
     u32 result = scast(u32, value);
     return result;
 }
-
-struct read_file_result
-{
-    szt content_size;
-    void *contents;
-};
-
-using platform_free_file_memory  = void (*)(thread_context *, void *);
-using platform_read_entire_file  = read_file_result (*)(thread_context *, const char *);
-using platform_write_entire_file = b32 (*)(thread_context *, const char *, u64, void *);
-
-struct platform_io
-{
-    platform_free_file_memory platform_free_file_memory;
-    platform_read_entire_file platform_read_entire_file;
-    platform_write_entire_file platform_write_entire_file;
-};
 
 }  // namespace tom
 #endif  // TOMATO_COMMON_HPP_

@@ -37,7 +37,7 @@ internal camera camera_default_init()
     result.pos        = { 0.0f, 0.0f, 0.0f };
     result.target_pos = {};
     result.up         = { 0.0f, 1.0f, 0.0f };
-    result.forward     = { 0.0f, 0.0f, 1.0f };
+    result.forward    = { 0.0f, 0.0f, 1.0f };
 
     return result;
 }
@@ -56,7 +56,7 @@ camera camera_init(v3 pos, v3 forward, v3 up)
     result.pos = pos;
     // NOTE: can't assume passed in vectors are normalized
     result.forward = vec::normalize(forward);
-    result.up     = vec::normalize(up);
+    result.up      = vec::normalize(up);
     camera_init_angle(&result);
 
     return result;
@@ -69,7 +69,7 @@ camera camera_init_no_angle(v3 pos, v3 forward, v3 up)
     result.pos = pos;
     // NOTE: can't assume passed in vectors are normalized
     result.forward = vec::normalize(forward);
-    result.up     = vec::normalize(up);
+    result.up      = vec::normalize(up);
 
     return result;
 }
@@ -249,7 +249,7 @@ void orbit_cam(camera *cam, keyboard kb, mouse ms, window_dims win_dims, f32 *di
         }
     }
     cam->forward = vec::normalize(cam->pos - cam->target_pos);
-    f32 d2      = vec::distance(cam->pos, cam->target_pos);
+    f32 d2       = vec::distance(cam->pos, cam->target_pos);
 
     if (d1 > d2) {
         // moved away
@@ -275,14 +275,14 @@ void camera_look_at(camera *cam, v3 target_pos)
 
     f32 d1 = vec::distance(cam->pos, cam->target_pos);
 
-    // forward 
+    // forward
     cam->forward = vec::normalize(cam->pos - cam->target_pos);
-    f32 d2      = vec::distance(cam->pos, cam->target_pos);
+    f32 d2       = vec::distance(cam->pos, cam->target_pos);
 
     v3 n = vec::normalize(cam->forward);
     v3 u = vec::normalize(vec::cross(cam->up, n));
     v3 v = vec::cross(n, u);
-    
+
     cam->up = v;
 
     // NOTE: this keeps a constant distance
@@ -305,6 +305,41 @@ m4 camera_view(camera cam)
     m4 result = mat::row_3x3(u, v, n) * mat::translate(-cam.pos);
 
     return result;
+}
+
+void camera_set_pos(camera *cam, v3 pos)
+{
+#if Z_UP
+    cam->pos.x = pos.x;
+    cam->pos.y = pos.z;
+    cam->pos.z = -pos.y;
+#else
+    cam->pos    = pos;
+#endif
+}
+
+v3 camera_get_pos(camera *cam)
+{
+#if Z_UP
+    return { cam->pos.x, -cam->pos.z, cam->pos.y };
+#else
+    return cam->pos;
+#endif
+}
+
+void camera::set_pos(v3 pos)
+{
+    camera_set_pos(this, pos);
+}
+
+v3 camera::get_pos()
+{
+    return camera_get_pos(this);
+}
+
+m4 camera::view()
+{
+    return camera_view(*this);
 }
 
 }  // namespace tom

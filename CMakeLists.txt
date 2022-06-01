@@ -124,34 +124,37 @@ add_library(stb STATIC
     )
 
 add_executable(tomato_engine WIN32
+    ${SOURCE_DIR}/app.hpp
+    ${SOURCE_DIR}/app.cpp
     ${SOURCE_DIR}/array.hpp
     ${SOURCE_DIR}/core.hpp
     ${SOURCE_DIR}/camera.hpp
     ${SOURCE_DIR}/camera.cpp
     ${SOURCE_DIR}/color.hpp
     ${SOURCE_DIR}/data.h
-    ${SOURCE_DIR}/directx.cpp
-    ${SOURCE_DIR}/directx.hpp
+    ${SOURCE_DIR}/file_io.hpp
+    ${SOURCE_DIR}/file_io.cpp
+    ${SOURCE_DIR}/graphics.hpp
+    ${SOURCE_DIR}/graphics.cpp
     ${SOURCE_DIR}/imgui_style.h
+    ${SOURCE_DIR}/input.hpp
+    ${SOURCE_DIR}/input.cpp
     ${SOURCE_DIR}/intrinsic.hpp
-    ${SOURCE_DIR}/game.hpp
-    ${SOURCE_DIR}/game.cpp
     ${SOURCE_DIR}/math.hpp
+    ${SOURCE_DIR}/memory.hpp
     ${SOURCE_DIR}/mesh.hpp
     ${SOURCE_DIR}/mesh.cpp
     ${SOURCE_DIR}/noise.hpp
     ${SOURCE_DIR}/noise.cpp
-    ${SOURCE_DIR}/obj_loader.hpp
-    ${SOURCE_DIR}/obj_loader.cpp
-    ${SOURCE_DIR}/shader.hpp
-    ${SOURCE_DIR}/shader.cpp
     ${SOURCE_DIR}/stack.hpp
-    ${SOURCE_DIR}/vector.hpp
-    ${SOURCE_DIR}/texture.hpp
-    ${SOURCE_DIR}/texture.cpp
+    ${SOURCE_DIR}/sound.hpp
+    ${SOURCE_DIR}/sound.cpp
+    ${SOURCE_DIR}/time.hpp
     ${SOURCE_DIR}/utils.hpp
-    ${SOURCE_DIR}/win32_platform.hpp
-    ${SOURCE_DIR}/win32_platform.cpp
+    ${SOURCE_DIR}/vector.hpp
+    ${SOURCE_DIR}/win32.hpp
+    ${SOURCE_DIR}/win32.cpp
+    ${SOURCE_DIR}/winmain.cpp
     )
 
 target_include_directories(tomato_engine PRIVATE 
