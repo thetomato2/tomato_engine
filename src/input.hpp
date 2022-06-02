@@ -294,6 +294,8 @@ inline bool is_key_down(const key k)
     return k.ended_down;
 }
 
+void do_input(input *old_input, input *new_input, HWND hwnd, s32 ms_scroll);
+
 }  // namespace tom
 
 #endif

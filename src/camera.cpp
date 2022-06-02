@@ -37,7 +37,7 @@ internal camera camera_default_init()
     result.pos        = { 0.0f, 0.0f, 0.0f };
     result.target_pos = {};
     result.up         = { 0.0f, 1.0f, 0.0f };
-    result.forward    = { 0.0f, 0.0f, 1.0f };
+    result.forward    = { 0.0f, 0.0f, -1.0f };
 
     return result;
 }
@@ -221,8 +221,7 @@ void orbit_cam(camera *cam, keyboard kb, mouse ms, window_dims win_dims, f32 *di
     f32 mouse_sens  = 0.0005f / (1 / d1);
     f32 scroll_sens = 50.0f;
 
-    // to keep a constant orbit
-
+#if 0
     if (is_key_down(ms.m)) {
         if (ms_delta.x > 0.0f) {
             f32 spd         = abs(ms_delta.x) * mouse_sens;
@@ -248,6 +247,34 @@ void orbit_cam(camera *cam, keyboard kb, mouse ms, window_dims win_dims, f32 *di
             is_key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
         }
     }
+#else
+    if (is_key_down(ms.m)) {
+        if (ms_delta.x > 0.0f) {
+            f32 spd         = abs(ms_delta.x) * mouse_sens;
+            cam_mov_dir dir = cam_mov_dir::left;
+            move_camera(cam, dir, spd);
+        }
+
+        if (ms_delta.x < 0.0f) {
+            f32 spd         = abs(ms_delta.x) * mouse_sens;
+            cam_mov_dir dir = cam_mov_dir::right;
+            move_camera(cam, dir, spd);
+        }
+
+        if (ms_delta.y > 0.0f) {
+            f32 spd         = abs(ms_delta.y) * mouse_sens;
+            cam_mov_dir dir = cam_mov_dir::up;
+            move_camera(cam, dir, spd);
+        }
+
+        if (ms_delta.y < 0.0f) {
+            f32 spd         = abs(ms_delta.y) * mouse_sens;
+            cam_mov_dir dir = cam_mov_dir::down;
+            move_camera(cam, dir, spd);
+        }
+    }
+#endif
+
     cam->forward = vec::normalize(cam->pos - cam->target_pos);
     f32 d2       = vec::distance(cam->pos, cam->target_pos);
 
@@ -314,7 +341,7 @@ void camera_set_pos(camera *cam, v3 pos)
     cam->pos.y = pos.z;
     cam->pos.z = -pos.y;
 #else
-    cam->pos    = pos;
+    cam->pos = pos;
 #endif
 }
 

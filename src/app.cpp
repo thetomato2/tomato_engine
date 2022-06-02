@@ -16,12 +16,15 @@ internal void app_init(app_state *state)
     state->clear_color = { 0.1f, 0.3f, 0.3f, 1.0f };
     state->vars.unit   = 1.0f;
     state->imgui_demo  = false;
+    state->model_pos   = { 0.0f, 0.0f, 0.0f };
+    state->cam         = camera_init();
+    state->cam_pos.z   = -4.0f;
+    state->cam.pos.z   = -4.0f;
+    state->wvp.view    = mat::identity();
 
     // state->cam_main = camera_init();
     // state->cam_main.set_pos(state->cam_pos);
     // state->cam_main.speed = 5.0f;
-
-    state->model_pos = { 0.0f, 0.0f, 4.0f };
 
     ID3DBlob *vs_blob, *ps_blob;
     D3DCompileFromFile(L"shaders.hlsl", nullptr, nullptr, "vs_main", "vs_5_0", 0, 0, &vs_blob,
@@ -112,6 +115,7 @@ internal void app_update(app_state *state)
     ImGui::ColorEdit4("Clear", (f32 *)&state->clear_color.e[0]);
     ImGui::SliderFloat("fov", &state->fov, 0.1f, 3.0f);
     ImGui::SliderFloat3("Cube Pos", (f32 *)&state->model_pos, -5.0f, 10.0f);
+    ImGui::SliderFloat3("cam Pos", (f32 *)&state->cam_pos, -10.0f, -2.0f);
     ImGui::End();
 
     if (state->imgui_demo) ImGui::ShowDemoWindow(&state->imgui_demo);
@@ -137,12 +141,18 @@ internal void app_update(app_state *state)
     // m4 model = mat::identity();
     // model    = mat::translate(model, { 0.0f, 0.0f, 4.0f });
 
+    // state->cam.pos = state->cam_pos;
+    orbit_cam(&state->cam, state->input.new_input.keyboard, state->input.new_input.mouse,
+              state->win32.win_dims);
+
     m4 model = mat::translate(state->model_pos);
     state->z_rot += state->dt;
     m4 rot           = mat::rot_z(state->z_rot) * mat::rot_x(state->z_rot);
     model            = rot * model;
     cons->transform  = model;
-    cons->projection = state->wvp.proj;
+    state->wvp.view  = state->cam.view();
+    m4 wvp           = state->wvp.view * state->wvp.proj;
+    cons->projection = wvp;
     cons->light_v3   = { 1.0f, -1.0f, 1.0f };
 
     state->gfx.device_context->Unmap(state->gfx.const_buf, 0);
@@ -334,6 +344,9 @@ s32 start(HINSTANCE hinst)
         // sound_output_buffer sound_buffer = { .samples_per_second = sound_output.samples_per_sec,
         //                                      .sample_count       = samples_to_write,
         //                                      .samples            = samples };
+
+        do_input(&state.input.old_input, &state.input.old_input, state.win32.hwnd,
+                 state.win32.ms_scroll);
 
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();

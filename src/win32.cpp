@@ -75,6 +75,7 @@ void process_pending_messages(win32_state *state)
     state->resize    = g_resize;
     state->win_dims  = g_win_dim;
     state->ms_scroll = g_ms_scroll;
+    g_ms_scroll = 0;
 
     MSG msg;
     while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {

@@ -6,6 +6,7 @@
 #include "input.hpp"
 #include "graphics.hpp"
 #include "sound.hpp"
+#include "camera.hpp"
 #include "time.hpp"
 
 namespace tom
@@ -64,6 +65,8 @@ struct app_state
     f32 dt;
     f32 fov;
     f32 z_rot;
+    v3 cam_pos;
+    camera cam;
     v3 model_pos;
     v4 clear_color;
     szt total_size;
