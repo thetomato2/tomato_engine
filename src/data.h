@@ -1,5 +1,5 @@
-#ifndef TOMATO_DATA_HPP_
-#define TOMATO_DATA_HPP_
+#ifndef TOMATO_DATA_H_
+#define TOMATO_DATA_H_
 
 #define TEXTURE_WIDTH  2
 #define TEXTURE_HEIGHT 2

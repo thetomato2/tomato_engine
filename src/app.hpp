@@ -31,8 +31,8 @@ struct constants
 
 struct app_input
 {
-    input new_input;
-    input old_input;
+    input *current;
+    input *last;
 };
 
 struct app_vars
@@ -55,6 +55,12 @@ struct app_state
     f32 target_frames_per_second;
     app_vars vars;
     s64 performance_counter_frequency;
+    u32 work_ind;
+    f32 work_secs[256];
+    f32 ms_frame;
+    s32 fps;
+    s32 target_fps;
+    cycle_counter counters[cycle_counter_cnt];
     char exe_path[MAX_PATH];
     win32_state win32;
     graphics_state gfx;
@@ -64,13 +70,16 @@ struct app_state
     void *memory_block;
     f32 dt;
     f32 fov;
-    f32 z_rot;
+    v3 rot;
+    v3 rot_spd;
     v3 cam_pos;
     camera cam;
     v3 model_pos;
     v4 clear_color;
     szt total_size;
     bool imgui_demo;
+
+    bool wvp_sw;
 
     struct
     {

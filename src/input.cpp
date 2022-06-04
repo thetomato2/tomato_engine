@@ -119,7 +119,6 @@ void do_input(input *old_input, input *new_input, HWND hwnd, s32 ms_scroll)
     process_keyboard_message(new_input->keyboard.y, ::GetKeyState(keys::y) & (1 << 15));
     process_keyboard_message(new_input->keyboard.z, ::GetKeyState(keys::z) & (1 << 15));
 
-#if CONTROLLER_ENABLED
     // controller
     // poll the input device
     s32 max_controller_count = XUSER_MAX_COUNT;
@@ -203,7 +202,6 @@ void do_input(input *old_input, input *new_input, HWND hwnd, s32 ms_scroll)
             // unsigned TCHAR dPadLT = pad->bLeftTrigger;
         }
     }
-#endif
 }
 
 }  // namespace tom

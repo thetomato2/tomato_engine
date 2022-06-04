@@ -2,9 +2,24 @@
 #ifndef TOMATO_IMGUI_STYLE_H_
 #define TOMATO_IMGUI_STYLE_H_
 
-#include <imgui.h>
+#include "core.hpp"
 
-void set_ImGui_style(void)
+namespace tom
+{
+
+inline void imgui_text_m4(const char *label, m4 a)
+{
+    ImGui::Text("%s: \n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f %f, %f\n%f, %f, %f, %f", label,
+                a.e[0], a.e[1], a.e[2], a.e[3], a.e[4], a.e[5], a.e[6], a.e[7], a.e[8], a.e[9],
+                a.e[10], a.e[11], a.e[12], a.e[13], a.e[14], a.e[15]);
+}
+
+inline void imgui_text_v3(const char *label, v3 a)
+{
+    ImGui::Text("%s: %f, %f, %f", label, a.x, a.y, a.z);
+}
+
+inline void set_ImGui_style()
 {
     ImGuiStyle &style = ImGui::GetStyle();
 
@@ -70,4 +85,5 @@ void set_ImGui_style(void)
     // style.ScaleAllSizes(highDPIscaleFactor);
 }
 
+}  // namespace tom
 #endif  // !TOMATO_IMGUI_STYLE_H_

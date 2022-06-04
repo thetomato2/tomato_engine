@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "data.h"
-#include "imgui_style.h"
+#include "imgui.hpp"
 
 namespace tom
 {
@@ -12,15 +12,17 @@ internal void on_resize(app_state *state)
 
 internal void app_init(app_state *state)
 {
-    state->fov         = 1.0f;
-    state->clear_color = { 0.1f, 0.3f, 0.3f, 1.0f };
-    state->vars.unit   = 1.0f;
-    state->imgui_demo  = false;
-    state->model_pos   = { 0.0f, 0.0f, 0.0f };
-    state->cam         = camera_init();
-    state->cam_pos.z   = -4.0f;
-    state->cam.pos.z   = -4.0f;
-    state->wvp.view    = mat::identity();
+    state->fov            = 1.0f;
+    state->clear_color    = { 0.1f, 0.3f, 0.3f, 1.0f };
+    state->vars.unit      = 1.0f;
+    state->imgui_demo     = false;
+    state->model_pos      = { 0.0f, 0.0f, -4.0f };
+    state->cam            = camera_init();
+    state->cam.target_pos = state->model_pos;
+    // state->cam_pos.z   = -4.0f;
+    // state->cam.pos.z   = -4.0f;
+    state->wvp.view = mat::identity();
+    state->rot_spd  = {};
 
     // state->cam_main = camera_init();
     // state->cam_main.set_pos(state->cam_pos);
@@ -111,11 +113,22 @@ internal void app_init(app_state *state)
 
 internal void app_update(app_state *state)
 {
+    BEGIN_TIMED_BLOCK(update);
+
     ImGui::Begin("Scene");
     ImGui::ColorEdit4("Clear", (f32 *)&state->clear_color.e[0]);
     ImGui::SliderFloat("fov", &state->fov, 0.1f, 3.0f);
     ImGui::SliderFloat3("Cube Pos", (f32 *)&state->model_pos, -5.0f, 10.0f);
-    ImGui::SliderFloat3("cam Pos", (f32 *)&state->cam_pos, -10.0f, -2.0f);
+    ImGui::SliderFloat("rotation speed x", &state->rot_spd.x, 0.0f, 10.0f);
+    ImGui::SliderFloat("rotation speed y", &state->rot_spd.y, 0.0f, 10.0f);
+    ImGui::SliderFloat("rotation speed z", &state->rot_spd.z, 0.0f, 10.0f);
+    ImGui::End();
+
+    ImGui::Begin("Camera");
+    imgui_text_v3("pos", state->cam.pos);
+    imgui_text_v3("up", state->cam.up);
+    imgui_text_v3("forward", state->cam.forward);
+    imgui_text_v3("target", state->cam.target_pos);
     ImGui::End();
 
     if (state->imgui_demo) ImGui::ShowDemoWindow(&state->imgui_demo);
@@ -142,16 +155,32 @@ internal void app_update(app_state *state)
     // model    = mat::translate(model, { 0.0f, 0.0f, 4.0f });
 
     // state->cam.pos = state->cam_pos;
-    orbit_cam(&state->cam, state->input.new_input.keyboard, state->input.new_input.mouse,
-              state->win32.win_dims);
+    // orbit_cam(&state->cam, state->input.current->keyboard, state->input.current->mouse,
+    //           state->win32.win_dims);
 
     m4 model = mat::translate(state->model_pos);
-    state->z_rot += state->dt;
-    m4 rot           = mat::rot_z(state->z_rot) * mat::rot_x(state->z_rot);
-    model            = rot * model;
-    cons->transform  = model;
-    state->wvp.view  = state->cam.view();
-    m4 wvp           = state->wvp.view * state->wvp.proj;
+    state->rot += state->rot_spd * state->dt;
+    m4 rot = mat::rot_z(state->rot.z) * mat::rot_y(state->rot.y) * mat::rot_x(state->rot.x);
+    model  = rot * model;
+    cons->transform = model;
+    state->wvp.view = state->cam.view();
+
+    if (is_key_down(state->input.current->keyboard.d1)) {
+        state->wvp_sw = !state->wvp_sw;
+        printf("1 is up\n");
+    }
+
+    m4 wvp, wvp1, wvp2;
+    wvp1 = state->wvp.proj * state->wvp.view;
+    wvp2 = state->wvp.view * state->wvp.proj;
+    state->wvp_sw ? wvp = wvp1 : wvp = wvp2;
+
+    // wvp.e[11] = -1.0f;
+    // wvp.e[15] = 4.0f;
+    ImGui::Begin("WVP");
+    imgui_text_m4("view", state->wvp.view);
+    imgui_text_m4("wvp", wvp);
+    ImGui::End();
     cons->projection = wvp;
     cons->light_v3   = { 1.0f, -1.0f, 1.0f };
 
@@ -186,6 +215,8 @@ internal void app_update(app_state *state)
         0xffffffff);  // use default blend mode (i.e. disable)
 
     state->gfx.device_context->DrawIndexed(ARRAY_COUNT(IndexData), 0, 0);
+
+    END_TIMED_BLOCK(update);
 }
 
 s32 start(HINSTANCE hinst)
@@ -208,6 +239,7 @@ s32 start(HINSTANCE hinst)
     app_state state                     = {};
     state.game_update_hertz             = 60;
     state.target_frames_per_second      = 1.0f / scast(f32, state.game_update_hertz);
+    state.target_fps                    = 144;
     state.sound.frames_of_audio_latency = (1.1f / 30.f) * scast(f32, state.game_update_hertz);
     state.win32.icon                    = icon;
 
@@ -253,8 +285,8 @@ s32 start(HINSTANCE hinst)
 
     // load_Xinput();
 
-    state.win32.win_dims.width  = 1280;
-    state.win32.win_dims.height = 720;
+    state.win32.win_dims.width  = 1600;
+    state.win32.win_dims.height = 900;
 
     // state->sound.frames_of_audio_latency = (1.1f / 30.f) * scast(f32, win32::game_update_hertz);
 
@@ -309,6 +341,10 @@ s32 start(HINSTANCE hinst)
     ImGui_ImplDX11_Init(state.gfx.device, state.gfx.device_context);
     set_ImGui_style();
 
+    input inputs[2];
+    state.input.current = &inputs[0];
+    state.input.last    = &inputs[1];
+
     state.win32.running = true;
 
     app_init(&state);
@@ -320,11 +356,23 @@ s32 start(HINSTANCE hinst)
             state.win32.resize = false;
         }
 
+        state.target_frames_per_second = 1.0f / scast(f32, state.target_fps);
+
         state.win32.ms_scroll = 0;
         process_pending_messages(&state.win32);
         // do_controller_input(*old_input, *new_input, hwnd);
-        // NOTE: this isn't calculated and needs to be for a varaible framerate
-        state.dt = state.target_frames_per_second;
+        // NOTE: this isn't calculated and needs to be for a variable framerate
+        // state.dt            = state.target_frames_per_second;
+        state.dt            = state.ms_frame / 1000.0f;
+        local u64 frame_cnt = 0;
+        local f32 one_sec   = 0.0f;
+        ++frame_cnt;
+        one_sec += state.ms_frame;
+        if (one_sec > 1000.0f) {
+            one_sec -= 1000.0f;
+            state.fps = (s32)frame_cnt;
+            frame_cnt = 0;
+        }
 
         // REFERENCE_TIME latency;
         // if (SUCCEEDED(g_audio_client->GetStreamLatency(&latency))) {
@@ -345,14 +393,34 @@ s32 start(HINSTANCE hinst)
         //                                      .sample_count       = samples_to_write,
         //                                      .samples            = samples };
 
-        do_input(&state.input.old_input, &state.input.old_input, state.win32.hwnd,
-                 state.win32.ms_scroll);
+        do_input(state.input.last, state.input.current, state.win32.hwnd, state.win32.ms_scroll);
 
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
         app_update(&state);
+
+        f32 work_secs_avg = 0.0f;
+        for (u32 i = 0; i < ARRAY_COUNT(state.work_secs); ++i) {
+            work_secs_avg += (f32)state.work_secs[i];
+        }
+        work_secs_avg /= (f32)ARRAY_COUNT(state.work_secs);
+
+        ImGui::Begin("Cycles");
+        ImGui::Text("total: %llu", state.counters[cycle_counter_total].cycle_cnt);
+        ImGui::Text("Update: %llu", state.counters[cycle_counter_update].cycle_cnt);
+        ImGui::End();
+
+        ImGui::Begin("FPS");
+        ImGui::Text("fps: %d", state.fps);
+        ImGui::Text("frametime: %fms", state.ms_frame);
+        ImGui::Text("work: %fms", work_secs_avg);
+        // NOTE: can't go higher than 144... because of some type of vsync?
+        ImGui::SliderInt("target_fps:", &state.target_fps, 1, 144);
+        ImGui::End();
+
+        state.counters[cycle_counter_update].cycle_cnt = 0;
 
         ImGui::Render();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -365,8 +433,11 @@ s32 start(HINSTANCE hinst)
         auto work_counter = get_time();
         f32 work_seconds_elapsed =
             get_seconds_elapsed(last_counter, work_counter, state.performance_counter_frequency);
-        bool is_sleep_granular = false;
+        state.work_secs[state.work_ind++] = work_seconds_elapsed;
+        if (state.work_ind == ARRAY_COUNT(state.work_secs)) state.work_ind = 0;
 
+        bool is_sleep_granular = false;
+#if 1
         f32 seconds_elapsed_for_frame = work_seconds_elapsed;
         if (seconds_elapsed_for_frame < state.target_frames_per_second) {
             if (is_sleep_granular) {
@@ -385,9 +456,10 @@ s32 start(HINSTANCE hinst)
         } else {
             printf("WARNING--> missed frame timing!!!\n");
         }
+#endif
 
         auto end_counter = get_time();
-        f32 ms_per_frame = 1000.f * get_seconds_elapsed(last_counter, end_counter,
+        state.ms_frame   = 1000.f * get_seconds_elapsed(last_counter, end_counter,
                                                         state.performance_counter_frequency);
         // printf("%f\n", ms_per_frame);
 
@@ -410,13 +482,15 @@ s32 start(HINSTANCE hinst)
         //     write_cursor -= sound_output.secondary_buf_size;
         // }
 
-        auto temp_input       = state.input.new_input;
-        state.input.new_input = state.input.old_input;
-        state.input.old_input = temp_input;
+        auto temp_input     = state.input.current;
+        state.input.current = state.input.last;
+        state.input.last    = temp_input;
 
         u64 end_cycle_count = __rdtsc();
         u64 cycles_elapsed  = end_cycle_count - last_cycle_count;
         last_cycle_count    = end_cycle_count;
+
+        state.counters[cycle_counter_total].cycle_cnt = cycles_elapsed;
     }
 
     ImGui_ImplDX11_Shutdown();

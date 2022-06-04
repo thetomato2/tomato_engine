@@ -25,6 +25,7 @@ set(CMAKE_UNITY_BUILD OFF)
 
 set(SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(SHADER_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
+set(DATA_DIR ${CMAKE_CURRENT_LIST_DIR}/data)
 set(MESH_DIR ${CMAKE_CURRENT_LIST_DIR}/assets/mesh)
 set(TEXTURE_DIR ${CMAKE_CURRENT_LIST_DIR}/assets/images)
 set(EXTERN_DIR ${CMAKE_CURRENT_LIST_DIR}/external)
@@ -47,7 +48,7 @@ list(APPEND COMPILE_FLAGS
     # -EHsc
     # -Od
     # -Oi
-    #-WX
+    -WX
     -W4
     # -wd4201
     # -wd4100
@@ -57,7 +58,7 @@ list(APPEND COMPILE_FLAGS
     # -Z7
     -Zc:inline
     -Zc:wchar_t
-  ann  # -Zo
+    # -Zo
     )
 
 list(APPEND COMPILE_DEFS
@@ -87,6 +88,11 @@ file(GLOB SHADERS
     ${SHADER_DIR}/*.geom
     ${SHADER_DIR}/*.vert
     ${SHADER_DIR}/*.hlsl
+    )
+
+file(GLOB DATA
+    ${DATA_DIR}/*.ico
+    ${DATA_DIR}/*.png
     )
 
 file(GLOB MESHES
@@ -136,7 +142,7 @@ add_executable(tomato_engine WIN32
     ${SOURCE_DIR}/file_io.cpp
     ${SOURCE_DIR}/graphics.hpp
     ${SOURCE_DIR}/graphics.cpp
-    ${SOURCE_DIR}/imgui_style.h
+    ${SOURCE_DIR}/imgui.hpp
     ${SOURCE_DIR}/input.hpp
     ${SOURCE_DIR}/input.cpp
     ${SOURCE_DIR}/intrinsic.hpp
@@ -190,6 +196,11 @@ add_custom_command(
     TARGET tomato_engine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADER_DIR} $<TARGET_FILE_DIR:tomato_engine>
     DEPENDS ${SHADERS})
+
+add_custom_command(
+    TARGET tomato_engine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DATA_DIR} $<TARGET_FILE_DIR:tomato_engine>
+    DEPENDS ${DATA})
 
 add_custom_command(
     TARGET tomato_engine POST_BUILD

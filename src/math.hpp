@@ -12,6 +12,7 @@ namespace tom
 // ===============================================================================================
 namespace math
 {
+
 global constexpr f32 eps_f32 = 0.000001f;
 global constexpr f32 pi      = 3.14159265;
 
@@ -387,6 +388,11 @@ inline v3 v3_init(v2 a, f32 z = 0.f)
     return res;
 }
 
+inline v3 v3_zero()
+{
+    return {};
+}
+
 inline v3 operator+(v3 lhs, v3 rhs)
 {
     v3 res;
@@ -516,12 +522,12 @@ inline v3 &operator/=(v3 &lhs, f32 rhs)
     return lhs;
 }
 
-inline bool operator==(v3 &lhs, v3 &rhs)
+inline bool operator==(v3 &lhs, v3 rhs)
 {
     return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
 }
 
-inline bool operator!=(v3 &lhs, v3 &rhs)
+inline bool operator!=(v3 &lhs, v3 rhs)
 {
     return !(lhs == rhs);
 }
@@ -584,6 +590,11 @@ inline v4 v4_init(v3 a, f32 w = 0.0f)
     res.w = w;
 
     return res;
+}
+
+inline v4 v4_zero()
+{
+    return {};
 }
 
 inline v4 operator+(v4 lhs, v4 rhs)
@@ -1113,9 +1124,9 @@ inline v3 rotate(v3 v, quat q)
 // ===============================================================================================
 union m4
 {
-    // NOTE: row major
     f32 e[16];
     f32 m[4][4];
+    v4 r[4];
 };
 
 inline m4 operator*(m4 a, m4 b)
@@ -1198,9 +1209,14 @@ inline m4 rot_x(f32 a)
     f32 c = cos(a);
     f32 s = sin(a);
 
+    // clang-format off
     m4 res = {
-        1.0f, 0.0f, 0.0f, 0.0f, 0.0f, c, -s, 0.0f, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, c, s, 0.0f,
+        0.0f, -s, c, 0.0f, 
+        0.0f, 0.0f, 0.0f, 1.0f
     };
+    // clang-format on
 
     return res;
 }
@@ -1215,9 +1231,14 @@ inline m4 rot_y(f32 a)
     f32 c = cos(a);
     f32 s = sin(a);
 
+    // clang-format off
     m4 res = {
-        c, 0.0f, s, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -s, 0.0f, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        c, 0.0f, -s, 0.0f, 
+        0.0f, 1.0f, 0.0f, 0.0f,
+         s, 0.0f, c, 0.0f,
+          0.0f, 0.0f, 0.0f, 1.0f
     };
+    // clang-format on
 
     return res;
 }
@@ -1233,7 +1254,7 @@ inline m4 rot_z(f32 a)
     f32 s = sin(a);
 
     m4 res = {
-        c, -s, 0.0f, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        c, s, 0.0f, 0.0f, -s, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
     };
 
     return res;
@@ -1360,18 +1381,28 @@ inline m4 proj_ortho(f32 aspect_ratio)
 
 inline m4 col_3x3(v3 x, v3 y, v3 z)
 {
+    // clang-format off
     m4 res = {
-        x.x, y.x, z.x, 0.0f, x.y, y.y, z.y, 0.0f, x.z, y.z, z.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        x.x, y.x, z.x, 0.0f,
+        x.y, y.y, z.y, 0.0f, 
+        x.z, y.z, z.z, 0.0f, 
+        0.0f, 0.0f, 0.0f, 1.0f
     };
+    // clang-format on
 
     return res;
 }
 
 inline m4 row_3x3(v3 x, v3 y, v3 z)
 {
+    // clang-format off
     m4 res = {
-        x.x, x.y, x.z, 0.0f, y.x, y.y, y.z, 0.0f, z.x, z.y, z.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        x.x, x.y, x.z, 0.0f, 
+        y.x, y.y, y.z, 0.0f, 
+        z.x, z.y, z.z, 0.0f, 
+        0.0f, 0.0f, 0.0f, 1.0f
     };
+    // clang-format on
 
     return res;
 }
@@ -1417,17 +1448,34 @@ inline m4 uvn_to_m4(v3 pos, v3 u, v3 v, v3 n)
     return res;
 }
 
-inline m4 look_at(v3 from, v3 to)
+inline m4 look_to(v3 eye_pos, v3 eye_dir, v3 up_dir)
 {
-    v3 t       = { 0.0f, 1.0f, 0.0f };
-    v3 forward = vec::normalize(from - to);
-    v3 right   = vec::cross(vec::normalize(t), forward);
-    v3 up      = vec::cross(forward, right);
+    TOM_ASSERT(eye_dir != v3_zero());
+    TOM_ASSERT(up_dir != v3_zero());
 
-    m4 res = { right.x,   right.y,   right.z,   0.0f, up.x,   up.y,   up.z,   0.0f,
-               forward.x, forward.y, forward.z, 0.0f, from.x, from.y, from.z, 1.0f };
+    v3 r2 = vec::normalize(eye_dir);
+    v3 r0 = vec::normalize(vec::cross(up_dir, r2));
+    v3 r1 = vec::cross(r2, r0);
+
+    v3 neg_eye_pos = -eye_pos;
+
+    f32 d0 = vec::dot(r0, neg_eye_pos);
+    f32 d1 = vec::dot(r1, neg_eye_pos);
+    f32 d2 = vec::dot(r2, neg_eye_pos);
+
+    m4 res;
+    res.r[0] = v4_init(r0, d0);
+    res.r[1] = v4_init(r1, d1);
+    res.r[2] = v4_init(r2, d2);
+    res.r[3] = mat::identity().r[3];
 
     return res;
+}
+
+inline m4 look_at(v3 eye_pos, v3 target_pos, v3 up_dir)
+{
+    v3 eye_dir = target_pos - eye_pos;
+    return look_to(eye_pos, eye_dir, up_dir);
 }
 
 inline m4 get_uvn(v3 forward, v3 up, v3 pos)
