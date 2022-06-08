@@ -1,7 +1,7 @@
 #ifndef TOMATO_COMMON_HPP_
 #define TOMATO_COMMON_HPP_
 
-#define USE_CRT 1  // use the c runtime lib
+#define STL_LIB 1
 
 #include <cassert>
 #include <cmath>
@@ -21,14 +21,18 @@
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 
-
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
-#include "directx.hpp"
 
 #include <imgui.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
+
+#if STL_LIB
+    #include <vector>
+    #include <memory>
+    #include <string>
+#endif
 
 // NOTE: for grep purposes
 #define scast(t, v) static_cast<t>(v)
@@ -134,10 +138,6 @@ byt (&ArrayCountHelper(T (&)[N]))[N];
     #define TOM_DLL_EXPORT
 #endif
 
-#ifndef TOM_INTERNAL
-    #define TOM_INTERNAL
-#endif
-
 #ifdef TOM_INTERNAL
     #define TOM_ASSERT(x)                                               \
         if (!(x)) {                                                     \
@@ -152,16 +152,31 @@ byt (&ArrayCountHelper(T (&)[N]))[N];
             __debugbreak();                                                       \
         }                                                                         \
         assert(x)
-
     #define DEBUG_BREAK(x)  \
         if (x) {            \
             __debugbreak(); \
         }
+    #define INTERNAL_ONLY_EXECUTE(args) args
 #else
     #define TOM_ASSERT(x)
     #define TOM_ASSERT_MSG(x, msg)
     #define DEBUG_BREAK(x)
+    #define INTERNAL_ONLY_EXECUTE(args)
 #endif
+
+// FIXME: there is no EXPP_TEXT
+#define EXPP_HRESULT(hr, what) EXPP_EXCEPTION(HRESULT, (HRESULT)hr, EXPP_TEXT(what))
+#define EVALUATE_HRESULT(call, what)      \
+    {                                     \
+        HRESULT hr;                       \
+        if (FAILED(hr = call)) {          \
+            throw EXPP_HRESULT(hr, what); \
+        }                                 \
+    }
+#define EVALUATE_HRESULT_HR(hr, call, what) \
+    if (FAILED(hr = call)) {                \
+        throw EXPP_HRESULT(hr, what);       \
+    }
 
 #define INVALID_CODE_PATH TOM_ASSERT(!"Invalid code path!")
 

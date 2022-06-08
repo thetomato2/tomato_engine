@@ -12,21 +12,11 @@
 namespace tom
 {
 
-struct float3
-{
-    float x, y, z;
-};
-
-struct matrix
-{
-    float m[4][4];
-};
-
 struct constants
 {
     m4 transform;
     m4 projection;
-    float3 light_v3;
+    v3 light_v3;
 };
 
 struct app_input
@@ -78,6 +68,7 @@ struct app_state
     v4 clear_color;
     szt total_size;
     bool imgui_demo;
+    f64 val1, val2;
 
     bool wvp_sw;
 

@@ -1,13 +1,16 @@
 #include "app.hpp"
 #include "data.h"
 #include "imgui.hpp"
+#include "vector.hpp"
+#include "file_io.hpp"
 
 namespace tom
 {
+
 internal void on_resize(app_state *state)
 {
     f32 aspect = scast(f32, state->win32.win_dims.width) / scast(f32, state->win32.win_dims.height);
-    state->wvp.proj = mat::proj_persp(aspect, state->fov, 1.0f, 100.0f);
+    state->wvp.proj = mat::proj_persp(aspect, state->fov, 1.0f, 1000.0f);
 }
 
 internal void app_init(app_state *state)
@@ -27,6 +30,89 @@ internal void app_init(app_state *state)
     // state->cam_main = camera_init();
     // state->cam_main.set_pos(state->cam_pos);
     // state->cam_main.speed = 5.0f;
+
+    const char *dir_name = "./test";
+    if (!dir_exists(dir_name)) {
+        CreateDirectoryA(dir_name, NULL);
+    }
+
+    constexpr szt buf_size = 4096 * 4096;
+    char *buf              = new char[buf_size];
+
+    for (szt i = 0; i < buf_size;) {
+        buf[i++] = 'p';
+        buf[i++] = 'o';
+        buf[i++] = 'o';
+        buf[i++] = 'p';
+        buf[i++] = ' ';
+    }
+    write_entire_file("out.txt", sizeof(char) * buf_size, buf);
+    vector<scoped_file> files;
+    for (szt i = 0; i < 10; ++i) {
+        files.emplace_back("out.txt");
+    }
+
+    szt file_i = 0;
+    for (auto &f : files) {
+        std::string out_name = "./test/out_" + std::to_string(file_i++) + ".txt";
+        write_entire_file(out_name.c_str(), sizeof(char) * buf_size, buf);
+    }
+
+#if STL_LIB
+
+    #define NUM_ITER 100000
+
+    BEGIN_TIMED_BLOCK(std_vec);
+
+    std::vector<s32> std_vec;
+    for (szt i = 0; i < NUM_ITER; ++i) {
+        s32 x = i * i;
+        std_vec.push_back(x);
+    }
+    END_TIMED_BLOCK(std_vec);
+
+    // NOTE: my simple as fuck implementation is 2.5 - 3.0 ish times faster...
+    BEGIN_TIMED_BLOCK(tom_vec);
+    vector<s32> tom_vec;
+    for (szt i = 0; i < NUM_ITER; ++i) {
+        s32 x = i * i;
+        tom_vec.push_back(x);
+    }
+    END_TIMED_BLOCK(tom_vec);
+
+    {
+        BEGIN_TIMED_BLOCK(std_ptr);
+        f64 val = 0.0;
+        for (s32 iter = 0; iter < NUM_ITER; ++iter) {
+            auto foo = std::make_unique<f64>((f64)iter);
+            val += *foo;
+            foo.release();
+        }
+        state->val1 = val;
+
+        END_TIMED_BLOCK(std_ptr);
+    }
+
+    {
+        BEGIN_TIMED_BLOCK(raw_ptr);
+        f64 val = 0.0;
+        for (s32 iter = 0; iter < NUM_ITER; ++iter) {
+            auto *foo = new f64 { (f64)iter };
+            val += *foo;
+            delete foo;
+        }
+        state->val2 = val;
+        END_TIMED_BLOCK(raw_ptr);
+    }
+
+    f32 xt = (f32)state->counters[cycle_counter_raw_ptr].cycle_cnt /
+             (f32)state->counters[cycle_counter_std_ptr].cycle_cnt;
+    printf("raw / std: %f\n", xt);
+    f32 xu = (f32)state->counters[cycle_counter_tom_vec].cycle_cnt /
+             (f32)state->counters[cycle_counter_std_vec].cycle_cnt;
+    printf("tom / std: %f\n", xu);
+
+#endif
 
     ID3DBlob *vs_blob, *ps_blob;
     D3DCompileFromFile(L"shaders.hlsl", nullptr, nullptr, "vs_main", "vs_5_0", 0, 0, &vs_blob,
@@ -140,9 +226,6 @@ internal void app_update(app_state *state)
 
     auto *cons = rcast(constants *, mapped_sub_resource.pData);
 
-    float3 modelScale       = { 1.0f, 1.0f, 1.0f };
-    float3 modelTranslation = { 0.0f, 0.0f, 4.0f };
-
     // float w = (f32)memory->win_dims.width / (f32)memory->win_dims.height;  // width (aspect
     // ratio) float h = 1.0f;                                                        // height float
     // n = 1.0f;                                                        // near float f = 9.0f; //
@@ -155,8 +238,9 @@ internal void app_update(app_state *state)
     // model    = mat::translate(model, { 0.0f, 0.0f, 4.0f });
 
     // state->cam.pos = state->cam_pos;
-    // orbit_cam(&state->cam, state->input.current->keyboard, state->input.current->mouse,
-    //           state->win32.win_dims);
+    // TODO: this doesn't work
+    orbit_cam(&state->cam, state->input.current->keyboard, state->input.current->mouse,
+              state->win32.win_dims);
 
     m4 model = mat::translate(state->model_pos);
     state->rot += state->rot_spd * state->dt;
@@ -165,15 +249,7 @@ internal void app_update(app_state *state)
     cons->transform = model;
     state->wvp.view = state->cam.view();
 
-    if (is_key_down(state->input.current->keyboard.d1)) {
-        state->wvp_sw = !state->wvp_sw;
-        printf("1 is up\n");
-    }
-
-    m4 wvp, wvp1, wvp2;
-    wvp1 = state->wvp.proj * state->wvp.view;
-    wvp2 = state->wvp.view * state->wvp.proj;
-    state->wvp_sw ? wvp = wvp1 : wvp = wvp2;
+    m4 wvp = state->wvp.view * state->wvp.proj;
 
     // wvp.e[11] = -1.0f;
     // wvp.e[15] = 4.0f;
@@ -408,8 +484,12 @@ s32 start(HINSTANCE hinst)
         work_secs_avg /= (f32)ARRAY_COUNT(state.work_secs);
 
         ImGui::Begin("Cycles");
-        ImGui::Text("total: %llu", state.counters[cycle_counter_total].cycle_cnt);
+        ImGui::Text("tom_vec: %llu", state.counters[cycle_counter_tom_vec].cycle_cnt);
+        ImGui::Text("std_vec: %llu", state.counters[cycle_counter_std_vec].cycle_cnt);
+        ImGui::Text("raw_ptr: %llu", state.counters[cycle_counter_raw_ptr].cycle_cnt);
+        ImGui::Text("std_ptr: %llu", state.counters[cycle_counter_std_ptr].cycle_cnt);
         ImGui::Text("Update: %llu", state.counters[cycle_counter_update].cycle_cnt);
+        ImGui::Text("total: %llu", state.counters[cycle_counter_total].cycle_cnt);
         ImGui::End();
 
         ImGui::Begin("FPS");
@@ -418,6 +498,12 @@ s32 start(HINSTANCE hinst)
         ImGui::Text("work: %fms", work_secs_avg);
         // NOTE: can't go higher than 144... because of some type of vsync?
         ImGui::SliderInt("target_fps:", &state.target_fps, 1, 144);
+        ImGui::RadioButton("30", &state.target_fps, 30);
+        ImGui::SameLine();
+        ImGui::RadioButton("60", &state.target_fps, 60);
+        ImGui::SameLine();
+        ImGui::RadioButton("144", &state.target_fps, 144);
+        ImGui::SameLine();
         ImGui::End();
 
         state.counters[cycle_counter_update].cycle_cnt = 0;

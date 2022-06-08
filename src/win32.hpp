@@ -21,6 +21,7 @@ struct win32_state
     HICON icon;
 };
 
+bool dir_exists(const char *dir);
 void create_console();
 void create_window(win32_state *state);
 void process_pending_messages(win32_state *state);

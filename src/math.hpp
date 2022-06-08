@@ -13,17 +13,22 @@ namespace tom
 namespace math
 {
 
-global constexpr f32 eps_f32 = 0.000001f;
-global constexpr f32 pi      = 3.14159265;
+global constexpr f32 eps_f32    = 0.00001f;
+global constexpr f32 xm_pi      = 3.141592654f;
+global constexpr f32 xm_2pi     = 6.283185307f;
+global constexpr f32 xm_1divpi  = 0.318309886f;
+global constexpr f32 xm_1div2pi = 0.159154943f;
+global constexpr f32 xm_pidiv2  = 1.570796327f;
+global constexpr f32 xm_pidiv4  = 0.785398163f;
 
 inline f32 to_radian(f32 val)
 {
-    return (val * pi) / 180.0f;
+    return (val * xm_pi) / 180.0f;
 }
 
 inline f32 to_degree(f32 val)
 {
-    return (val * 180.0f) / pi;
+    return (val * 180.0f) / xm_pi;
 }
 
 // Calculate linear interpolation between two floats
@@ -71,6 +76,54 @@ inline bool equals_f32(f32 a, f32 b)
     bool res = (fabsf(a - b)) <= (eps_f32 * fmaxf(1.0f, fmaxf(fabsf(a), fabsf(b))));
 
     return res;
+}
+
+inline void scalar_sin_cos(f32 *p_sin, f32 *p_cos, f32 val)
+{
+    TOM_ASSERT(p_sin);
+    TOM_ASSERT(p_cos);
+    f32 quo = xm_1div2pi * val;
+
+    if (val >= 0.0f)
+        quo = (f32)(s32)(quo + 0.5f);
+    else
+        quo = (f32)(s32)(quo - 0.5f);
+
+    f32 y = val - xm_2pi * quo;
+    f32 sign;
+    if (y > xm_pidiv2) {
+        y    = xm_pi - y;
+        sign = -1.0f;
+    } else if (y < -xm_pidiv2) {
+        y    = -xm_pi - y;
+        sign = -1.0f;
+    } else {
+        sign = 1.0f;
+    }
+    f32 y2 = y * y;
+
+    // 11-degree minimax approximation
+    *p_sin =
+        (((((-2.3889859e-08f * y2 + 2.7525562e-06f) * y2 - 0.00019840874f) * y2 + 0.0083333310f) *
+              y2 -
+          0.16666667f) *
+             y2 +
+         1.0f) *
+        y;
+
+    // 10-degree minimax approximation
+    f32 p =
+        ((((-2.6051615e-07f * y2 + 2.4760495e-05f) * y2 - 0.0013888378f) * y2 + 0.041666638f) * y2 -
+         0.5f) *
+            y2 +
+        1.0f;
+    *p_cos = sign * p;
+}
+
+inline bool near_equal_f32(f32 a, f32 b, f32 eps = 0.00001f)
+{
+    f32 delta = a - b;
+    return fabsf(delta) <= eps;
 }
 
 template<typename T>
@@ -1342,28 +1395,26 @@ inline m4 transpose(m4 a)
     return res;
 }
 
-inline m4 proj_persp(f32 aspect_ratio, f32 focal_len, f32 n, f32 f)
+inline m4 proj_persp(f32 aspect_ratio, f32 fov_y, f32 near_z, f32 far_z)
 {
-    f32 e = 1.0f / tanf(focal_len / 2.0f);
-    f32 d = (n + f) / (n - f);
-    f32 q = (2.0f * f * n) / (n - f);
+    TOM_ASSERT(near_z > 0.0f && far_z > 0.0f);
+    TOM_ASSERT(!math::near_equal_f32(fov_y, 0.0f, 0.00001f * 2.0f));
+    TOM_ASSERT(!math::near_equal_f32(aspect_ratio, 0.0f));
+    TOM_ASSERT(!math::near_equal_f32(near_z, far_z));
 
-    m4 res = { e / aspect_ratio,
-               0.0f,
-               0.0f,
-               0.0f,
-               0.0f,
-               e,
-               0.0f,
-               0.0f,
-               0.0f,
-               0.0f,
-               d,
-               1.0f,
-               0.0f,
-               0.0f,
-               q,
-               0.0f };
+    f32 sin_fov, cos_fov;
+    math::scalar_sin_cos(&sin_fov, &cos_fov, 0.5f * fov_y);
+
+    f32 height  = cos_fov / sin_fov;
+    f32 width   = height / aspect_ratio;
+    f32 f_range = far_z / (far_z - near_z);
+
+    m4 res      = {};
+    res.m[0][0] = width;
+    res.m[1][1] = height;
+    res.m[2][2] = f_range;
+    res.m[2][3] = 1.0f;
+    res.m[3][2] = -f_range * near_z;
 
     return res;
 }
@@ -1457,11 +1508,9 @@ inline m4 look_to(v3 eye_pos, v3 eye_dir, v3 up_dir)
     v3 r0 = vec::normalize(vec::cross(up_dir, r2));
     v3 r1 = vec::cross(r2, r0);
 
-    v3 neg_eye_pos = -eye_pos;
-
-    f32 d0 = vec::dot(r0, neg_eye_pos);
-    f32 d1 = vec::dot(r1, neg_eye_pos);
-    f32 d2 = vec::dot(r2, neg_eye_pos);
+    f32 d0 = vec::dot(r0, -eye_pos);
+    f32 d1 = vec::dot(r1, -eye_pos);
+    f32 d2 = vec::dot(r2, -eye_pos);
 
     m4 res;
     res.r[0] = v4_init(r0, d0);

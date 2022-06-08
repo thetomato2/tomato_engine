@@ -1,4 +1,5 @@
 #include "win32.hpp"
+#include "scope.hpp"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
                                                              LPARAM lParam);
@@ -45,6 +46,80 @@ internal window_dims get_window_dimensions(HWND hwnd)
     return win_dim;
 }
 
+bool dir_exists(const char *dir)
+{
+    DWORD ftyp = GetFileAttributesA(dir);
+    if (ftyp == INVALID_FILE_ATTRIBUTES) return false;
+
+    if (ftyp & FILE_ATTRIBUTE_DIRECTORY) return true;
+
+    return false;
+}
+
+// recursively deletes the specified directory and all its contents
+// absolute path of the directory that will be deleted
+// NOTE: the path must not be terminated with a path separator.
+#if NEEDS_STD_STRING
+void rm_rf_dir(const char *path)
+{
+    const char *all_files_mask = "\\*";
+
+    WIN32_FIND_DATAA findData;
+
+    // First, delete the contents of the directory, recursively for subdirectories
+    std::wstring searchMask = path + all_files_mask;
+    HANDLE searchHandle     = ::FindFirstFileExA(searchMask.c_str(), FindExInfoBasic, &findData,
+                                                 FindExSearchNameMatch, nullptr, 0);
+    if (searchHandle == INVALID_HANDLE_VALUE) {
+        DWORD lastError = ::GetLastError();
+        if (lastError != ERROR_FILE_NOT_FOUND) {  // or ERROR_NO_MORE_FILES, ERROR_NOT_FOUND?
+            throw std::runtime_error("Could not start directory enumeration");
+        }
+    }
+
+    // Did this directory have any contents? If so, delete them first
+    if (searchHandle != INVALID_HANDLE_VALUE) {
+        SearchHandleScope scope(searchHandle);
+        for (;;) {
+            // Do not process the obligatory '.' and '..' directories
+            if (findData.cFileName[0] != '.') {
+                bool isDirectory =
+                    ((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) ||
+                    ((findData.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0);
+
+                // Subdirectories need to be handled by deleting their contents first
+                std::wstring filePath = path + L'\\' + findData.cFileName;
+                if (isDirectory) {
+                    recursiveDeleteDirectory(filePath);
+                } else {
+                    BOOL result = ::DeleteFileW(filePath.c_str());
+                    if (result == FALSE) {
+                        throw std::runtime_error("Could not delete file");
+                    }
+                }
+            }
+
+            // Advance to the next file in the directory
+            BOOL result = ::FindNextFileW(searchHandle, &findData);
+            if (result == FALSE) {
+                DWORD lastError = ::GetLastError();
+                if (lastError != ERROR_NO_MORE_FILES) {
+                    throw std::runtime_error("Error enumerating directory");
+                }
+                break;  // All directory contents enumerated and deleted
+            }
+
+        }  // for
+    }
+
+    // The directory is empty, we can now safely remove it
+    BOOL result = ::RemoveDirectory(path.c_str());
+    if (result == FALSE) {
+        throw std::runtime_error("Could not remove directory");
+    }
+}
+#endif
+
 void create_console()
 {
     bool is_initialized = AllocConsole();
@@ -75,7 +150,7 @@ void process_pending_messages(win32_state *state)
     state->resize    = g_resize;
     state->win_dims  = g_win_dim;
     state->ms_scroll = g_ms_scroll;
-    g_ms_scroll = 0;
+    g_ms_scroll      = 0;
 
     MSG msg;
     while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {

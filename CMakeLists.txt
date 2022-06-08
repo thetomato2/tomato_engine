@@ -5,6 +5,7 @@ project ("Tomato_Engine"
         DESCRIPTION "My personal voxel game"
         LANGUAGES CXX)
 
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -23,6 +24,7 @@ set(CMAKE_UNITY_BUILD OFF)
 # set(OPT_WARNINGS_AS_ERRORS_DEVELOPER_DEFAULT TRUE)
 
 
+
 set(SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(SHADER_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
 set(DATA_DIR ${CMAKE_CURRENT_LIST_DIR}/data)
@@ -34,9 +36,6 @@ set(EXTERN_DIR ${CMAKE_CURRENT_LIST_DIR}/external)
 # set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BUILD_DIR})
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BUILD_DIR})
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIR})
-
-# find_package(assimp CONFIG REQUIRED)
-
 
 list(APPEND COMPILE_FLAGS
     -fp:fast
@@ -152,9 +151,10 @@ add_executable(tomato_engine WIN32
     ${SOURCE_DIR}/mesh.cpp
     ${SOURCE_DIR}/noise.hpp
     ${SOURCE_DIR}/noise.cpp
-    ${SOURCE_DIR}/stack.hpp
+    ${SOURCE_DIR}/scope.hpp
     ${SOURCE_DIR}/sound.hpp
     ${SOURCE_DIR}/sound.cpp
+    ${SOURCE_DIR}/stack.hpp
     ${SOURCE_DIR}/time.hpp
     ${SOURCE_DIR}/utils.hpp
     ${SOURCE_DIR}/vector.hpp
@@ -187,43 +187,23 @@ target_link_libraries(tomato_engine PRIVATE ${COMMON_LINKER_LIBS} imgui stb)
 target_link_options(tomato_engine PRIVATE
     ${LINKER_FLAGS}
     # -NODEFAULTLIB
-    )
+)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY
-        VS_STARTUP_PROJECT tomato_engine )
+VS_STARTUP_PROJECT tomato_engine )
+    
+add_custom_command(TARGET tomato_engine 
+    PRE_BUILD
+        COMMAND ctime -begin ${CMAKE_CURRENT_LIST_DIR}/data/tomato_engine.ctm
+)
 
 add_custom_command(
     TARGET tomato_engine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADER_DIR} $<TARGET_FILE_DIR:tomato_engine>
-    DEPENDS ${SHADERS})
-
-add_custom_command(
-    TARGET tomato_engine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DATA_DIR} $<TARGET_FILE_DIR:tomato_engine>
-    DEPENDS ${DATA})
-
-add_custom_command(
-    TARGET tomato_engine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${MESH_DIR} $<TARGET_FILE_DIR:tomato_engine>
-    DEPENDS ${MESHES})
-
-add_custom_command(
-    TARGET tomato_engine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${TEXTURE_DIR} $<TARGET_FILE_DIR:tomato_engine>
-    DEPENDS ${TEXTURES})
-
-add_custom_command(
-    TARGET tomato_engine PRE_BUILD
-    COMMAND ctime -begin ${CMAKE_CURRENT_LIST_DIR}/data/tomato_engine.ctm)
-
-add_custom_command(
-    TARGET tomato_engine POST_BUILD
-    COMMAND ctime -end ${CMAKE_CURRENT_LIST_DIR}/data/tomato_engine.ctm)
-
-add_custom_command(
-    TARGET tomato_engine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_LIST_DIR}/build_times.txt)
-
-add_custom_command(
-    TARGET tomato_engine POST_BUILD
-    COMMAND ctime -csv ${CMAKE_CURRENT_LIST_DIR}/data/tomato_engine.ctm >> ${CMAKE_CURRENT_LIST_DIR}/build_times.txt)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADER_DIR} $<TARGET_FILE_DIR:tomato_engine> DEPENDS ${SHADERS}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DATA_DIR} $<TARGET_FILE_DIR:tomato_engine> DEPENDS ${DATA}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${MESH_DIR} $<TARGET_FILE_DIR:tomato_engine> DEPENDS ${MESHES}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${TEXTURE_DIR} $<TARGET_FILE_DIR:tomato_engine> DEPENDS ${TEXTURES}
+    COMMAND ctime -end ${CMAKE_CURRENT_LIST_DIR}/data/tomato_engine.ctm
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_LIST_DIR}/build_times.txt
+    COMMAND ctime -csv ${CMAKE_CURRENT_LIST_DIR}/data/tomato_engine.ctm >> ${CMAKE_CURRENT_LIST_DIR}/build_times.txt
+)

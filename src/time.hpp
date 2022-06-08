@@ -8,8 +8,12 @@ namespace tom
 
 enum
 {
-    cycle_counter_total,
+    cycle_counter_tom_vec,
+    cycle_counter_std_vec,
+    cycle_counter_std_ptr,
+    cycle_counter_raw_ptr,
     cycle_counter_update,
+    cycle_counter_total,
     cycle_counter_cnt
 };
 
@@ -31,8 +35,9 @@ inline f32 get_seconds_elapsed(LARGE_INTEGER start, LARGE_INTEGER end,
     return scast(f32, end.QuadPart - start.QuadPart) / scast(f32, performance_counter_frequency);
 }
 
-#define BEGIN_TIMED_BLOCK(ID) u64 start_cycle_cnt_##ID = __rdtsc();
-#define END_TIMED_BLOCK(ID)   state->counters[cycle_counter_##ID].cycle_cnt += __rdtsc() - start_cycle_cnt_##ID;
+#define BEGIN_TIMED_BLOCK(ID) u64 start_cycle_cnt_##ID = __rdtsc()
+#define END_TIMED_BLOCK(ID) \
+    state->counters[cycle_counter_##ID].cycle_cnt += __rdtsc() - start_cycle_cnt_##ID
 
 }  // namespace tom
 

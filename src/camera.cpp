@@ -247,7 +247,10 @@ void orbit_cam(camera *cam, keyboard kb, mouse ms, window_dims win_dims, f32 *di
         }
     }
 
-    if (cam->pos != cam->target_pos) cam->forward = vec::normalize(cam->pos - cam->target_pos);
+    if (cam->pos != cam->target_pos) {
+        cam->forward = vec::normalize(cam->target_pos - cam->pos);
+    }
+
     f32 d2 = vec::distance(cam->pos, cam->target_pos);
 
     if (d1 > d2) {
@@ -321,7 +324,7 @@ void camera_set_pos(camera *cam, v3 pos)
     cam->pos.y = pos.z;
     cam->pos.z = -pos.y;
 #else
-    cam->pos    = pos;
+    cam->pos = pos;
 #endif
 }
 
