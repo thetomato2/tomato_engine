@@ -1186,7 +1186,6 @@ inline m4 operator*(m4 a, m4 b)
 {
     m4 res = {};
 
-#if 1
     res.e[0]  = a.e[0] * b.e[0] + a.e[1] * b.e[4] + a.e[2] * b.e[8] + a.e[3] * b.e[12];
     res.e[1]  = a.e[0] * b.e[1] + a.e[1] * b.e[5] + a.e[2] * b.e[9] + a.e[3] * b.e[13];
     res.e[2]  = a.e[0] * b.e[2] + a.e[1] * b.e[6] + a.e[2] * b.e[10] + a.e[3] * b.e[14];
@@ -1203,18 +1202,6 @@ inline m4 operator*(m4 a, m4 b)
     res.e[13] = a.e[12] * b.e[1] + a.e[13] * b.e[5] + a.e[14] * b.e[9] + a.e[15] * b.e[13];
     res.e[14] = a.e[12] * b.e[2] + a.e[13] * b.e[6] + a.e[14] * b.e[10] + a.e[15] * b.e[14];
     res.e[15] = a.e[12] * b.e[3] + a.e[13] * b.e[7] + a.e[14] * b.e[11] + a.e[15] * b.e[15];
-
-#else
-    // NOTE: this should unroll but...
-    // TODO: unroll this and use simd
-    for (s32 r = 0; r < 4; ++r) {
-        for (s32 c = 0; c < 4; ++c) {
-            for (s32 i = 0; i < 4; ++i) {
-                res.e[r][c] += a.e[r][i] * b.e[i][c];
-            }
-        }
-    }
-#endif
 
     return res;
 }

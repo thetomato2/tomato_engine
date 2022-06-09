@@ -31,6 +31,7 @@ internal void app_init(app_state *state)
     // state->cam_main.set_pos(state->cam_pos);
     // state->cam_main.speed = 5.0f;
 
+#if 0
     const char *dir_name = "./test";
     if (!dir_exists(dir_name)) {
         CreateDirectoryA(dir_name, NULL);
@@ -57,8 +58,6 @@ internal void app_init(app_state *state)
         std::string out_name = "./test/out_" + std::to_string(file_i++) + ".txt";
         write_entire_file(out_name.c_str(), sizeof(char) * buf_size, buf);
     }
-
-#if STL_LIB
 
     #define NUM_ITER 100000
 
@@ -297,7 +296,7 @@ internal void app_update(app_state *state)
 
 s32 start(HINSTANCE hinst)
 {
-    const TCHAR *icon_path = _T(".\\tomato.ico");
+    const TCHAR *icon_path = _T(".\\data\\tomato.ico");
     auto icon              = (HICON)(LoadImage(NULL, icon_path, IMAGE_ICON, 0, 0,
                                                LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED));
 
@@ -400,15 +399,13 @@ s32 start(HINSTANCE hinst)
     SetCursorPos(state.win32.win_dims.width / 2, state.win32.win_dims.height / 2);
     d3d_init(state.win32.hwnd, &state.gfx);
 
-    LARGE_INTEGER last_counter = get_time();
-    u64 last_cycle_count       = __rdtsc();
+    s64 last_counter     = get_time();
+    u64 last_cycle_count = __rdtsc();
 
     f32 delta_time = 0.0f;
     // NOTE: dummy thread context, for now
     thread_context thread {};
 
-    // ImGui
-    //  TODO: where to put this?
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -496,7 +493,7 @@ s32 start(HINSTANCE hinst)
         ImGui::Text("fps: %d", state.fps);
         ImGui::Text("frametime: %fms", state.ms_frame);
         ImGui::Text("work: %fms", work_secs_avg);
-        // NOTE: can't go higher than 144... because of some type of vsync?
+        // NOTE: can't go higher than 144... because of vsync?
         ImGui::SliderInt("target_fps:", &state.target_fps, 1, 144);
         ImGui::RadioButton("30", &state.target_fps, 30);
         ImGui::SameLine();
@@ -522,8 +519,7 @@ s32 start(HINSTANCE hinst)
         state.work_secs[state.work_ind++] = work_seconds_elapsed;
         if (state.work_ind == ARRAY_COUNT(state.work_secs)) state.work_ind = 0;
 
-        bool is_sleep_granular = false;
-#if 1
+        bool is_sleep_granular        = false;
         f32 seconds_elapsed_for_frame = work_seconds_elapsed;
         if (seconds_elapsed_for_frame < state.target_frames_per_second) {
             if (is_sleep_granular) {
@@ -542,7 +538,6 @@ s32 start(HINSTANCE hinst)
         } else {
             printf("WARNING--> missed frame timing!!!\n");
         }
-#endif
 
         auto end_counter = get_time();
         state.ms_frame   = 1000.f * get_seconds_elapsed(last_counter, end_counter,

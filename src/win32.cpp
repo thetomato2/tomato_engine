@@ -286,8 +286,8 @@ void create_window(win32_state *state)
     hr = GetLastError();
 
     UINT desired_scheduler_MS = 1;
-    b32 is_sleep_granular     = (timeBeginPeriod(desired_scheduler_MS) == TIMERR_NOERROR);
-    is_sleep_granular         = false;
+    // b32 is_sleep_granular     = (timeBeginPeriod(desired_scheduler_MS) == TIMERR_NOERROR);
+    // is_sleep_granular         = false;
 
     HDC hdc = GetDC(state->hwnd);
 

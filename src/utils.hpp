@@ -35,7 +35,6 @@ inline szt get_wstr_sz(const char *str)
     return size;
 }
 
-// FIXME: idk if this is working
 inline void wstr_to_str(const wchar *wstr, char *buf)
 {
     auto len  = get_wstr_len(wstr);

@@ -12,8 +12,7 @@
 #ifndef NOMINMAX
     #define NOMINMAX
 #endif
-// TODO: use this, right now there is some sleep fuction in the platform layer this turns off
-// #define WIN32_LEAN_AND_MEAN 0
+#define WIN32_LEAN_AND_MEAN 0
 #include <windows.h>
 #include <tchar.h>
 

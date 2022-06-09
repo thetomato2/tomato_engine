@@ -22,17 +22,16 @@ struct cycle_counter
     u64 cycle_cnt;
 };
 
-inline LARGE_INTEGER get_time()
+inline s64 get_time()
 {
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
-    return time;
+    return time.QuadPart;
 }
 
-inline f32 get_seconds_elapsed(LARGE_INTEGER start, LARGE_INTEGER end,
-                               s64 performance_counter_frequency)
+inline f32 get_seconds_elapsed(s64 start, s64 end, s64 performance_counter_frequency)
 {
-    return scast(f32, end.QuadPart - start.QuadPart) / scast(f32, performance_counter_frequency);
+    return scast(f32, end - start) / scast(f32, performance_counter_frequency);
 }
 
 #define BEGIN_TIMED_BLOCK(ID) u64 start_cycle_cnt_##ID = __rdtsc()

@@ -7,5 +7,4 @@ call "C:\Program Files\Microsoft Visual Studio\2022\Preview\Common7\Tools\VsDevC
 cmake --preset msvc-Debug
 cd ../msvc-Debug
 cmake --build .
-devenv .\tomato_engine.exe
 popd

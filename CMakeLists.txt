@@ -200,9 +200,9 @@ add_custom_command(TARGET tomato_engine
 add_custom_command(
     TARGET tomato_engine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADER_DIR} $<TARGET_FILE_DIR:tomato_engine> DEPENDS ${SHADERS}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DATA_DIR} $<TARGET_FILE_DIR:tomato_engine> DEPENDS ${DATA}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${MESH_DIR} $<TARGET_FILE_DIR:tomato_engine> DEPENDS ${MESHES}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${TEXTURE_DIR} $<TARGET_FILE_DIR:tomato_engine> DEPENDS ${TEXTURES}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DATA_DIR} $<TARGET_FILE_DIR:tomato_engine>/data DEPENDS ${DATA}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${MESH_DIR} $<TARGET_FILE_DIR:tomato_engine>/data DEPENDS ${MESHES}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${TEXTURE_DIR} $<TARGET_FILE_DIR:tomato_engine>/data DEPENDS ${TEXTURES}
     COMMAND ctime -end ${CMAKE_CURRENT_LIST_DIR}/data/tomato_engine.ctm
     COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_LIST_DIR}/build_times.txt
     COMMAND ctime -csv ${CMAKE_CURRENT_LIST_DIR}/data/tomato_engine.ctm >> ${CMAKE_CURRENT_LIST_DIR}/build_times.txt
