@@ -274,27 +274,22 @@ struct input
     controller controllers[controller_cnt];
 };
 
-inline bool is_button_up(const button b)
-{
-    return b.half_transition_cnt > 0 && b.ended_down == 0;
-}
-
-inline bool is_key_up(const key k)
+inline bool key_up(const key k)
 {
     return k.half_transition_cnt > 0 && k.ended_down == 0;
 }
 
-inline bool is_button_down(const button b)
+inline bool key_pressed(const key k)
 {
-    return b.ended_down;
+    return k.half_transition_cnt == 1;
 }
 
-inline bool is_key_down(const key k)
+inline bool key_down(const key k)
 {
     return k.ended_down;
 }
 
-void do_input(input *old_input, input *new_input, HWND hwnd, s32 ms_scroll);
+void do_input(input *new_input, HWND hwnd, s32 ms_scroll);
 
 }  // namespace tom
 

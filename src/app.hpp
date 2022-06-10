@@ -45,6 +45,7 @@ struct app_state
     f32 target_frames_per_second;
     app_vars vars;
     s64 performance_counter_frequency;
+    u64 frame_cnt;
     u32 work_ind;
     f32 work_secs[256];
     f32 ms_frame;
@@ -55,7 +56,7 @@ struct app_state
     win32_state win32;
     graphics_state gfx;
     sound_state sound;
-    app_input input;
+    input input;
     app_memory memory;
     void *memory_block;
     f32 dt;

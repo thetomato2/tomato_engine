@@ -195,7 +195,7 @@ void mouse_look_cam(camera *cam, mouse ms, window_dims win_dims)
     v3 u = vec::normalize(vec::cross(cam->up, n));
     v3 v = vec::cross(n, u);
 
-    if (is_key_down(ms.l)) {
+    if (key_down(ms.l)) {
         cam->forward = qua::rotate(cam->forward, u, angle_v);
         cam->forward = qua::rotate(cam->forward, cam->up, angle_h);
     }
@@ -221,29 +221,29 @@ void orbit_cam(camera *cam, keyboard kb, mouse ms, window_dims win_dims, f32 *di
     f32 mouse_sens  = 0.0005f / (1 / d1);
     f32 scroll_sens = 50.0f;
 
-    if (is_key_down(ms.m)) {
+    if (key_down(ms.m)) {
         if (ms_delta.x > 0.0f) {
             f32 spd         = abs(ms_delta.x) * mouse_sens;
             cam_mov_dir dir = cam_mov_dir::left;
-            is_key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
+            key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
         }
 
         if (ms_delta.x < 0.0f) {
             f32 spd         = abs(ms_delta.x) * mouse_sens;
             cam_mov_dir dir = cam_mov_dir::right;
-            is_key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
+            key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
         }
 
         if (ms_delta.y > 0.0f) {
             f32 spd         = abs(ms_delta.y) * mouse_sens;
             cam_mov_dir dir = cam_mov_dir::up;
-            is_key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
+            key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
         }
 
         if (ms_delta.y < 0.0f) {
             f32 spd         = abs(ms_delta.y) * mouse_sens;
             cam_mov_dir dir = cam_mov_dir::down;
-            is_key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
+            key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
         }
     }
 

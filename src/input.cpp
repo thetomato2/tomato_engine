@@ -53,7 +53,7 @@ internal void process_Xinput_digital_button(DWORD Xinput_button_state_, button &
         new_state.half_transition_cnt = ++old_state_.half_transition_cnt;
 }
 
-void do_input(input *old_input, input *new_input, HWND hwnd, s32 ms_scroll)
+void do_input(input *new_input, HWND hwnd, s32 ms_scroll)
 {
     // mouse cursor
     POINT mouse_point;
@@ -71,10 +71,10 @@ void do_input(input *old_input, input *new_input, HWND hwnd, s32 ms_scroll)
     process_keyboard_message(new_input->mouse.buttons[1], ::GetKeyState(VK_RBUTTON) & (1 << 15));
     process_keyboard_message(new_input->mouse.buttons[2], ::GetKeyState(VK_MBUTTON) & (1 << 15));
 
-    for (szt key = 0; key < ARRAY_COUNT(old_input->keyboard.keys); ++key) {
-        if (old_input->keyboard.keys[key].half_transition_cnt > 0 &&
-            old_input->keyboard.keys[key].ended_down == 0)
-            old_input->keyboard.keys[key].half_transition_cnt = 0;
+    for (szt key = 0; key < ARRAY_COUNT(new_input->keyboard.keys); ++key) {
+        if (new_input->keyboard.keys[key].half_transition_cnt > 0 &&
+            new_input->keyboard.keys[key].ended_down == 0)
+            new_input->keyboard.keys[key].half_transition_cnt = 0;
     }
 
     // keyboard
@@ -119,6 +119,7 @@ void do_input(input *old_input, input *new_input, HWND hwnd, s32 ms_scroll)
     process_keyboard_message(new_input->keyboard.y, ::GetKeyState(keys::y) & (1 << 15));
     process_keyboard_message(new_input->keyboard.z, ::GetKeyState(keys::z) & (1 << 15));
 
+#if 0
     // controller
     // poll the input device
     s32 max_controller_count = XUSER_MAX_COUNT;
@@ -202,6 +203,7 @@ void do_input(input *old_input, input *new_input, HWND hwnd, s32 ms_scroll)
             // unsigned TCHAR dPadLT = pad->bLeftTrigger;
         }
     }
+#endif
 }
 
 }  // namespace tom

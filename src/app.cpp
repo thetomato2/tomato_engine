@@ -238,8 +238,7 @@ internal void app_update(app_state *state)
 
     // state->cam.pos = state->cam_pos;
     // TODO: this doesn't work
-    orbit_cam(&state->cam, state->input.current->keyboard, state->input.current->mouse,
-              state->win32.win_dims);
+    orbit_cam(&state->cam, state->input.keyboard, state->input.mouse, state->win32.win_dims);
 
     m4 model = mat::translate(state->model_pos);
     state->rot += state->rot_spd * state->dt;
@@ -291,6 +290,20 @@ internal void app_update(app_state *state)
 
     state->gfx.device_context->DrawIndexed(ARRAY_COUNT(IndexData), 0, 0);
 
+    if (key_down(state->input.keyboard.d1)) {
+        printf("1\n");
+        printf("%d\n", state->input.keyboard.d1.half_transition_cnt);
+    }
+    if (key_up(state->input.keyboard.t)) {
+        printf("t\n");
+    }
+
+    if (key_pressed(state->input.keyboard.r)) {
+        printf("r\n");
+        printf("%d\n", state->input.keyboard.r.half_transition_cnt);
+        
+    }
+    
     END_TIMED_BLOCK(update);
 }
 
@@ -414,15 +427,13 @@ s32 start(HINSTANCE hinst)
     ImGui_ImplDX11_Init(state.gfx.device, state.gfx.device_context);
     set_ImGui_style();
 
-    input inputs[2];
-    state.input.current = &inputs[0];
-    state.input.last    = &inputs[1];
-
     state.win32.running = true;
 
     app_init(&state);
 
     while (true) {
+        ++state.frame_cnt;
+        // printf("%llu\n",state.frame_cnt);
         if (!state.win32.running) break;
         if (state.win32.resize) {
             on_resize(&state);
@@ -466,7 +477,7 @@ s32 start(HINSTANCE hinst)
         //                                      .sample_count       = samples_to_write,
         //                                      .samples            = samples };
 
-        do_input(state.input.last, state.input.current, state.win32.hwnd, state.win32.ms_scroll);
+        do_input(&state.input, state.win32.hwnd, state.win32.ms_scroll);
 
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
@@ -562,10 +573,6 @@ s32 start(HINSTANCE hinst)
         // if (write_cursor > sound_output.secondary_buf_size) {
         //     write_cursor -= sound_output.secondary_buf_size;
         // }
-
-        auto temp_input     = state.input.current;
-        state.input.current = state.input.last;
-        state.input.last    = temp_input;
 
         u64 end_cycle_count = __rdtsc();
         u64 cycles_elapsed  = end_cycle_count - last_cycle_count;
