@@ -1,0 +1,440 @@
+#include "noise.hh"
+
+namespace tom
+{
+
+namespace
+{
+// Hash lookup table as defined by Ken Perlin.  This is a randomly
+// arranged array of all numbers from 0-255 inclusive.
+u8 perm[256] = { 151, 160, 137, 91,  90,  15,  131, 13,  201, 95,  96,  53,  194, 233, 7,   225,
+                 140, 36,  103, 30,  69,  142, 8,   99,  37,  240, 21,  10,  23,  190, 6,   148,
+                 247, 120, 234, 75,  0,   26,  197, 62,  94,  252, 219, 203, 117, 35,  11,  32,
+                 57,  177, 33,  88,  237, 149, 56,  87,  174, 20,  125, 136, 171, 168, 68,  175,
+                 74,  165, 71,  134, 139, 48,  27,  166, 77,  146, 158, 231, 83,  111, 229, 122,
+                 60,  211, 133, 230, 220, 105, 92,  41,  55,  46,  245, 40,  244, 102, 143, 54,
+                 65,  25,  63,  161, 1,   216, 80,  73,  209, 76,  132, 187, 208, 89,  18,  169,
+                 200, 196, 135, 130, 116, 188, 159, 86,  164, 100, 109, 198, 173, 186, 3,   64,
+                 52,  217, 226, 250, 124, 123, 5,   202, 38,  147, 118, 126, 255, 82,  85,  212,
+                 207, 206, 59,  227, 47,  16,  58,  17,  182, 189, 28,  42,  223, 183, 170, 213,
+                 119, 248, 152, 2,   44,  154, 163, 70,  221, 153, 101, 155, 167, 43,  172, 9,
+                 129, 22,  39,  253, 19,  98,  108, 110, 79,  113, 224, 232, 178, 185, 112, 104,
+                 218, 246, 97,  228, 251, 34,  242, 193, 238, 210, 144, 12,  191, 179, 162, 241,
+                 81,  51,  145, 235, 249, 14,  239, 107, 49,  192, 214, 31,  181, 199, 106, 157,
+                 184, 84,  204, 176, 115, 121, 50,  45,  127, 4,   150, 254, 138, 236, 205, 93,
+                 222, 114, 67,  29,  24,  72,  243, 141, 128, 195, 78,  66,  215, 61,  156, 180 };
+
+}  // namespace
+
+internal u8 hash(s32 i)
+{
+    return perm[(u8)i];
+}
+
+internal f32 grad(s32 hash, f32 x)
+{
+    s32 h    = hash & 0x0F;          // Convert low 4 bits of hash code
+    f32 grad = 1.0f + (h & 7);       // Gradient value 1.0, 2.0, ..., 8.0
+    if ((h & 8) != 0) grad = -grad;  // Set a random sign for the gradient
+    return (grad * x);               // Multiply the gradient with the distance
+}
+
+internal f32 grad(s32 hash, f32 x, f32 y)
+{
+    s32 h = hash & 0x3F;    // Convert low 3 bits of hash code
+    f32 u = h < 4 ? x : y;  // into 8 simple gradient directions,
+    f32 v = h < 4 ? y : x;
+
+    return ((h & 1) ? -u : u) +
+           ((h & 2) ? -2.0f * v : 2.0f * v);  // and compute the dot product with (x,y).
+}
+
+internal f32 grad(s32 hash, f32 x, f32 y, f32 z)
+{
+    s32 h = hash & 15;      // Convert low 4 bits of hash code into 12 simple
+    f32 u = h < 8 ? x : y;  // gradient directions, and compute dot product.
+    f32 v = h < 4 ? y : h == 12 || h == 14 ? x : z;  // Fix repeats at h = 12 to 15
+
+    return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+}
+
+internal f32 fade(f32 t)
+{
+    return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+/**
+ * 1D Perlin simplex noise
+ *  Takes around 74ns on an AMD APU.
+ * x f32 coordinate
+ * Noise value in the range[-1; 1], value of 0 on all integer coordinates.
+ */
+f32 simplex_noise(f32 x)
+{
+    f32 n0, n1;  // Noise contributions from the two "corners"
+
+    // No need to skew the input space in 1D
+
+    // Corners coordinates (nearest integer values):
+    s32 i0 = math::fast_floor(x);
+    s32 i1 = i0 + 1;
+    // Distances to corners (between 0 and 1):
+    f32 x0 = x - i0;
+    f32 x1 = x0 - 1.0f;
+
+    // Calculate the contribution from the first corner
+    f32 t0 = 1.0f - x0 * x0;
+    //  if(t0 < 0.0f) t0 = 0.0f; // not possible
+    t0 *= t0;
+    n0 = t0 * t0 * grad(hash(i0), x0);
+
+    // Calculate the contribution from the second corner
+    f32 t1 = 1.0f - x1 * x1;
+    //  if(t1 < 0.0f) t1 = 0.0f; // not possible
+    t1 *= t1;
+    n1 = t1 * t1 * grad(hash(i1), x1);
+
+    // The maximum value of this noise is 8*(3/4)^4 = 2.53125
+    // A factor of 0.395 scales to fit exactly within [-1,1]
+    return 0.395f * (n0 + n1);
+}
+
+/**
+ * 2D Perlin simplex noise
+ * Takes around 150ns on an AMD APU.
+ * x f32 coordinate
+ * y f32 coordinate
+ *  Noise value in the range[-1; 1], value of 0 on all integer coordinates.
+ */
+f32 simplex_noise(f32 x, f32 y)
+{
+    f32 n0, n1, n2;  // Noise contributions from the three corners
+
+    // Skewing/Unskewing factors for 2D
+    f32 F2 = 0.366025403f;  // F2 = (sqrt(3) - 1) / 2
+    f32 G2 = 0.211324865f;  // G2 = (3 - sqrt(3)) / 6   = F2 / (1 + 2 * K)
+
+    // Skew the input space to determine which simplex cell we're in
+    f32 s  = (x + y) * F2;  // Hairy factor for 2D
+    f32 xs = x + s;
+    f32 ys = y + s;
+    s32 i  = math::fast_floor(xs);
+    s32 j  = math::fast_floor(ys);
+
+    // Unskew the cell origin back to (x,y) space
+    f32 t  = scast(f32, (i + j)) * G2;
+    f32 X0 = i - t;
+    f32 Y0 = j - t;
+    f32 x0 = x - X0;  // The x,y distances from the cell origin
+    f32 y0 = y - Y0;
+
+    // For the 2D case, the simplex shape is an equilateral triangle.
+    // Determine which simplex we are in.
+    s32 i1, j1;     // Offsets for second (middle) corner of simplex in (i,j) coords
+    if (x0 > y0) {  // lower triangle, XY order: (0,0)->(1,0)->(1,1)
+        i1 = 1;
+        j1 = 0;
+    } else {  // upper triangle, YX order: (0,0)->(0,1)->(1,1)
+        i1 = 0;
+        j1 = 1;
+    }
+
+    // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+    // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
+    // c = (3-sqrt(3))/6
+
+    f32 x1 = x0 - i1 + G2;  // Offsets for middle corner in (x,y) unskewed coords
+    f32 y1 = y0 - j1 + G2;
+    f32 x2 = x0 - 1.0f + 2.0f * G2;  // Offsets for last corner in (x,y) unskewed coords
+    f32 y2 = y0 - 1.0f + 2.0f * G2;
+
+    // Work out the hashed gradient indices of the three simplex corners
+    s32 gi0 = hash(i + hash(j));
+    s32 gi1 = hash(i + i1 + hash(j + j1));
+    s32 gi2 = hash(i + 1 + hash(j + 1));
+
+    // Calculate the contribution from the first corner
+    f32 t0 = 0.5f - x0 * x0 - y0 * y0;
+    if (t0 < 0.0f) {
+        n0 = 0.0f;
+    } else {
+        t0 *= t0;
+        n0 = t0 * t0 * grad(gi0, x0, y0);
+    }
+
+    // Calculate the contribution from the second corner
+    f32 t1 = 0.5f - x1 * x1 - y1 * y1;
+    if (t1 < 0.0f) {
+        n1 = 0.0f;
+    } else {
+        t1 *= t1;
+        n1 = t1 * t1 * grad(gi1, x1, y1);
+    }
+
+    // Calculate the contribution from the third corner
+    f32 t2 = 0.5f - x2 * x2 - y2 * y2;
+    if (t2 < 0.0f) {
+        n2 = 0.0f;
+    } else {
+        t2 *= t2;
+        n2 = t2 * t2 * grad(gi2, x2, y2);
+    }
+
+    // Add contributions from each corner to get the final noise value.
+    // The result is scaled to return values in the interval [-1,1].
+    return 45.23065f * (n0 + n1 + n2);
+}
+
+/**
+ * 3D Perlin simplex noise
+ *  x f32 coordinate
+ *  y f32 coordinate
+ *  z f32 coordinate
+ *  Noise value in the range[-1; 1], value of 0 on all integer coordinates.
+ */
+f32 simplex_noise(f32 x, f32 y, f32 z)
+{
+    f32 n0, n1, n2, n3;  // Noise contributions from the four corners
+
+    // Skewing/Unskewing factors for 3D
+    f32 F3 = 1.0f / 3.0f;
+    f32 G3 = 1.0f / 6.0f;
+
+    // Skew the input space to determine which simplex cell we're in
+    f32 s  = (x + y + z) * F3;  // Very nice and simple skew factor for 3D
+    s32 i  = math::fast_floor(x + s);
+    s32 j  = math::fast_floor(y + s);
+    s32 k  = math::fast_floor(z + s);
+    f32 t  = (i + j + k) * G3;
+    f32 X0 = i - t;  // Unskew the cell origin back to (x,y,z) space
+    f32 Y0 = j - t;
+    f32 Z0 = k - t;
+    f32 x0 = x - X0;  // The x,y,z distances from the cell origin
+    f32 y0 = y - Y0;
+    f32 z0 = z - Z0;
+
+    // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
+    // Determine which simplex we are in.
+    s32 i1, j1, k1;  // Offsets for second corner of simplex in (i,j,k) coords
+    s32 i2, j2, k2;  // Offsets for third corner of simplex in (i,j,k) coords
+    if (x0 >= y0) {
+        if (y0 >= z0) {
+            i1 = 1;
+            j1 = 0;
+            k1 = 0;
+            i2 = 1;
+            j2 = 1;
+            k2 = 0;  // X Y Z order
+        } else if (x0 >= z0) {
+            i1 = 1;
+            j1 = 0;
+            k1 = 0;
+            i2 = 1;
+            j2 = 0;
+            k2 = 1;  // X Z Y order
+        } else {
+            i1 = 0;
+            j1 = 0;
+            k1 = 1;
+            i2 = 1;
+            j2 = 0;
+            k2 = 1;  // Z X Y order
+        }
+    } else {  // x0<y0
+        if (y0 < z0) {
+            i1 = 0;
+            j1 = 0;
+            k1 = 1;
+            i2 = 0;
+            j2 = 1;
+            k2 = 1;  // Z Y X order
+        } else if (x0 < z0) {
+            i1 = 0;
+            j1 = 1;
+            k1 = 0;
+            i2 = 0;
+            j2 = 1;
+            k2 = 1;  // Y Z X order
+        } else {
+            i1 = 0;
+            j1 = 1;
+            k1 = 0;
+            i2 = 1;
+            j2 = 1;
+            k2 = 0;  // Y X Z order
+        }
+    }
+
+    // A step of (1,0,0) in (i,j,k) means a step of (1-c,-c,-c) in (x,y,z),
+    // a step of (0,1,0) in (i,j,k) means a step of (-c,1-c,-c) in (x,y,z), and
+    // a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
+    // c = 1/6.
+    f32 x1 = x0 - i1 + G3;  // Offsets for second corner in (x,y,z) coords
+    f32 y1 = y0 - j1 + G3;
+    f32 z1 = z0 - k1 + G3;
+    f32 x2 = x0 - i2 + 2.0f * G3;  // Offsets for third corner in (x,y,z) coords
+    f32 y2 = y0 - j2 + 2.0f * G3;
+    f32 z2 = z0 - k2 + 2.0f * G3;
+    f32 x3 = x0 - 1.0f + 3.0f * G3;  // Offsets for last corner in (x,y,z) coords
+    f32 y3 = y0 - 1.0f + 3.0f * G3;
+    f32 z3 = z0 - 1.0f + 3.0f * G3;
+
+    // Work out the hashed gradient indices of the four simplex corners
+    s32 gi0 = hash(i + hash(j + hash(k)));
+    s32 gi1 = hash(i + i1 + hash(j + j1 + hash(k + k1)));
+    s32 gi2 = hash(i + i2 + hash(j + j2 + hash(k + k2)));
+    s32 gi3 = hash(i + 1 + hash(j + 1 + hash(k + 1)));
+
+    // Calculate the contribution from the four corners
+    f32 t0 = 0.6f - x0 * x0 - y0 * y0 - z0 * z0;
+    if (t0 < 0) {
+        n0 = 0.0;
+    } else {
+        t0 *= t0;
+        n0 = t0 * t0 * grad(gi0, x0, y0, z0);
+    }
+    f32 t1 = 0.6f - x1 * x1 - y1 * y1 - z1 * z1;
+    if (t1 < 0) {
+        n1 = 0.0;
+    } else {
+        t1 *= t1;
+        n1 = t1 * t1 * grad(gi1, x1, y1, z1);
+    }
+    f32 t2 = 0.6f - x2 * x2 - y2 * y2 - z2 * z2;
+    if (t2 < 0) {
+        n2 = 0.0;
+    } else {
+        t2 *= t2;
+        n2 = t2 * t2 * grad(gi2, x2, y2, z2);
+    }
+    f32 t3 = 0.6f - x3 * x3 - y3 * y3 - z3 * z3;
+    if (t3 < 0) {
+        n3 = 0.0;
+    } else {
+        t3 *= t3;
+        n3 = t3 * t3 * grad(gi3, x3, y3, z3);
+    }
+    // Add contributions from each corner to get the final noise value.
+    // The result is scaled to stay just inside [-1,1]
+    return 32.0f * (n0 + n1 + n2 + n3);
+}
+
+/**
+ * Fractal/Fractional Brownian Motion (fBm) summation of 1D Perlin Simplex noise
+ *  octaves   number of fraction of noise to sum
+ *  x         f32 coordinate
+ *  Noise value in the range[-1; 1], value of 0 on all integer coordinates.
+ */
+internal f32 intern_simplex_fractal(szt octaves, f32 x, f32 freq, f32 amp, f32 lac, f32 persist)
+{
+    f32 output    = 0.0f;
+    f32 denom     = 0.0f;
+    f32 frequency = freq;
+    f32 amplitude = amp;
+
+    for (szt i = 0; i < octaves; ++i) {
+        output += (amplitude * simplex_noise(x * frequency));
+        denom += amplitude;
+
+        frequency *= lac;
+        amplitude *= persist;
+    }
+
+    return output / denom;
+}
+
+/**
+ * Fractal/Fractional Brownian Motion (fBm) summation of 2D Perlin Simplex noise
+ *
+ * octaves   number of fraction of noise to sum
+ * x         x f32 coordinate
+ *  y         y f32 coordinate
+ *
+ * @return Noise value in the range[-1; 1], value of 0 on all integer coordinates.
+ */
+internal f32 intern_simplex_fractal(szt octaves, f32 x, f32 y, f32 freq, f32 amp, f32 lac,
+                                    f32 persist)
+{
+    f32 output    = 0.0f;
+    f32 denom     = 0.0f;
+    f32 frequency = freq;
+    f32 amplitude = amp;
+
+    for (szt i = 0; i < octaves; i++) {
+        output += (amplitude * simplex_noise(x * frequency, y * frequency));
+        denom += amplitude;
+
+        frequency *= lac;
+        amplitude *= persist;
+    }
+
+    return (output / denom);
+}
+
+/**
+ * Fractal/Fractional Brownian Motion (fBm) summation of 3D Perlin Simplex noise
+ * octaves   number of fraction of noise to sum
+ *  x         x f32 coordinate
+ *  y         y f32 coordinate
+ *  z         z f32 coordinate
+ *  Noise value in the range[-1; 1], value of 0 on all integer coordinates.
+ */
+internal f32 intern_simplex_fractal(szt octaves, f32 x, f32 y, f32 z, f32 freq, f32 amp, f32 lac,
+                                    f32 persist)
+{
+    f32 output    = 0.0f;
+    f32 denom     = 0.0f;
+    f32 frequency = freq;
+    f32 amplitude = amp;
+
+    for (szt i = 0; i < octaves; i++) {
+        output += (amplitude * simplex_noise(x * frequency, y * frequency, z * frequency));
+        denom += amplitude;
+
+        frequency *= lac;
+        amplitude *= persist;
+    }
+
+    return (output / denom);
+}
+
+f32 simplex_fractal(szt octaves, f32 x)
+{
+    fractal_params fp;
+    return intern_simplex_fractal(octaves, x, fp.frequency, fp.amplitude, fp.lacunarity,
+                                  fp.persistance);
+}
+
+f32 simplex_fractal(szt octaves, f32 x, f32 y)
+{
+    fractal_params fp;
+    return intern_simplex_fractal(octaves, x, y, fp.frequency, fp.amplitude, fp.lacunarity,
+                                  fp.persistance);
+}
+
+f32 simplex_fractal(szt octaves, f32 x, f32 y, f32 z)
+{
+    fractal_params fp;
+    return intern_simplex_fractal(octaves, x, y, z, fp.frequency, fp.amplitude, fp.lacunarity,
+                                  fp.persistance);
+}
+
+f32 simplex_fractal(szt octaves, f32 x, fractal_params fp)
+{
+    return intern_simplex_fractal(octaves, x, fp.frequency, fp.amplitude, fp.lacunarity,
+                                  fp.persistance);
+}
+
+f32 simplex_fractal(szt octaves, f32 x, f32 y, fractal_params fp)
+{
+    return intern_simplex_fractal(octaves, x, y, fp.frequency, fp.amplitude, fp.lacunarity,
+                                  fp.persistance);
+}
+
+f32 simplex_fractal(szt octaves, f32 x, f32 y, f32 z, fractal_params fp)
+{
+    return intern_simplex_fractal(octaves, x, y, z, fp.frequency, fp.amplitude, fp.lacunarity,
+                                  fp.persistance);
+}
+
+}  // namespace tom

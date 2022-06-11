@@ -3,7 +3,8 @@
 
 #define TEXTURE_WIDTH  2
 #define TEXTURE_HEIGHT 2
-#include "core.hpp"
+
+#include "core.hh"
 
 namespace tom
 {
