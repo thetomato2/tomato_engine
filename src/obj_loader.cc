@@ -1,4 +1,4 @@
-#include "obj_loader.hpp"
+#include "obj_loader.hh"
 
 namespace tom
 {
