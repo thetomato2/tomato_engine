@@ -154,6 +154,8 @@ add_executable(tomato_engine WIN32
     ${SOURCE_DIR}/scope.hh
     ${SOURCE_DIR}/sound.hh
     ${SOURCE_DIR}/sound.cc
+    ${SOURCE_DIR}/string.hh # wtf cmake
+    ${SOURCE_DIR}/string.cc # wtf cmake
     ${SOURCE_DIR}/stack.hh
     ${SOURCE_DIR}/time.hh
     ${SOURCE_DIR}/utils.hh

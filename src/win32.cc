@@ -1,5 +1,6 @@
 #include "win32.hh"
 #include "scope.hh"
+#include "string.hh"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
                                                              LPARAM lParam);
@@ -46,6 +47,16 @@ internal window_dims get_window_dimensions(HWND hwnd)
     return win_dim;
 }
 
+bool dir_exists(const wchar *dir)
+{
+    DWORD ftyp = GetFileAttributesW(dir);
+    if (ftyp == INVALID_FILE_ATTRIBUTES) return false;
+
+    if (ftyp & FILE_ATTRIBUTE_DIRECTORY) return true;
+
+    return false;
+}
+
 bool dir_exists(const char *dir)
 {
     DWORD ftyp = GetFileAttributesA(dir);
@@ -56,55 +67,73 @@ bool dir_exists(const char *dir)
     return false;
 }
 
+void create_dir(string dir_name)
+{
+    if (!dir_exists(dir_name.c_str())) {
+        CreateDirectoryA(dir_name.c_str(), NULL);
+    }
+}
+
+void create_dir(wstring dir_name)
+{
+    if (!dir_exists(dir_name.c_str())) {
+        CreateDirectoryW(dir_name.c_str(), NULL);
+    }
+}
+
+#if 1
 // recursively deletes the specified directory and all its contents
 // absolute path of the directory that will be deleted
 // NOTE: the path must not be terminated with a path separator.
-#if NEEDS_STD_STRING
-void rm_rf_dir(const char *path)
+void rm_rf_dir(const wstring &path)
 {
-    const char *all_files_mask = "\\*";
+    if (path.back() == L'\\') {
+        INVALID_CODE_PATH;
+        return;
+    }
 
-    WIN32_FIND_DATAA findData;
+    wstring all_files_mask = L"\\*";
+    WIN32_FIND_DATAW find_data;
 
     // First, delete the contents of the directory, recursively for subdirectories
-    std::wstring searchMask = path + all_files_mask;
-    HANDLE searchHandle     = ::FindFirstFileExA(searchMask.c_str(), FindExInfoBasic, &findData,
-                                                 FindExSearchNameMatch, nullptr, 0);
-    if (searchHandle == INVALID_HANDLE_VALUE) {
-        DWORD lastError = ::GetLastError();
-        if (lastError != ERROR_FILE_NOT_FOUND) {  // or ERROR_NO_MORE_FILES, ERROR_NOT_FOUND?
-            throw std::runtime_error("Could not start directory enumeration");
+    wstring search_mask  = path + all_files_mask;
+    HANDLE search_handle = ::FindFirstFileExW(search_mask.c_str(), FindExInfoBasic, &find_data,
+                                              FindExSearchNameMatch, nullptr, 0);
+    if (search_handle == INVALID_HANDLE_VALUE) {
+        DWORD last_err = ::GetLastError();
+        if (last_err != ERROR_FILE_NOT_FOUND) {  // or ERROR_NO_MORE_FILES, ERROR_NOT_FOUND?
+            INVALID_CODE_PATH;
         }
     }
 
     // Did this directory have any contents? If so, delete them first
-    if (searchHandle != INVALID_HANDLE_VALUE) {
-        SearchHandleScope scope(searchHandle);
+    if (search_handle != INVALID_HANDLE_VALUE) {
+        scoped_search_handle scope(search_handle);
         for (;;) {
             // Do not process the obligatory '.' and '..' directories
-            if (findData.cFileName[0] != '.') {
+            if (find_data.cFileName[0] != '.') {
                 bool isDirectory =
-                    ((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) ||
-                    ((findData.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0);
+                    ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) ||
+                    ((find_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0);
 
                 // Subdirectories need to be handled by deleting their contents first
-                std::wstring filePath = path + L'\\' + findData.cFileName;
+                wstring file_path = path + L"\\" + find_data.cFileName;
                 if (isDirectory) {
-                    recursiveDeleteDirectory(filePath);
+                    rm_rf_dir(file_path);
                 } else {
-                    BOOL result = ::DeleteFileW(filePath.c_str());
+                    BOOL result = ::DeleteFileW(file_path.c_str());
                     if (result == FALSE) {
-                        throw std::runtime_error("Could not delete file");
+                        INVALID_CODE_PATH;
                     }
                 }
             }
 
             // Advance to the next file in the directory
-            BOOL result = ::FindNextFileW(searchHandle, &findData);
+            BOOL result = ::FindNextFileW(search_handle, &find_data);
             if (result == FALSE) {
-                DWORD lastError = ::GetLastError();
-                if (lastError != ERROR_NO_MORE_FILES) {
-                    throw std::runtime_error("Error enumerating directory");
+                DWORD last_err = ::GetLastError();
+                if (last_err != ERROR_NO_MORE_FILES) {
+                    INVALID_CODE_PATH;
                 }
                 break;  // All directory contents enumerated and deleted
             }
@@ -113,10 +142,17 @@ void rm_rf_dir(const char *path)
     }
 
     // The directory is empty, we can now safely remove it
-    BOOL result = ::RemoveDirectory(path.c_str());
+    BOOL result = ::RemoveDirectoryW(path.c_str());
     if (result == FALSE) {
-        throw std::runtime_error("Could not remove directory");
+        INVALID_CODE_PATH;
     }
+}
+
+// NOTE: the path must not be terminated with a path separator.
+void rm_rf_dir(const string &path)
+{
+    wstring wpath = convert_string_to_wstring(path);
+    rm_rf_dir(wpath);
 }
 #endif
 

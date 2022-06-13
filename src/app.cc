@@ -31,23 +31,18 @@ internal void app_init(app_state *state)
     // state->cam_main.set_pos(state->cam_pos);
     // state->cam_main.speed = 5.0f;
 
-#if 0
-    const char *dir_name = "./test";
-    if (!dir_exists(dir_name)) {
-        CreateDirectoryA(dir_name, NULL);
+#if 1
+
+    string dir = { "./test" };
+    create_dir(dir);
+
+    string_stream ss;
+    for (u32 i = 0; i < 1000; ++i) {
+        ss.push_back("tiger ");
     }
 
-    constexpr szt buf_size = 4096 * 4096;
-    char *buf              = new char[buf_size];
+    write_entire_file("out.txt", sizeof(char) * ss.size(), ss.data());
 
-    for (szt i = 0; i < buf_size;) {
-        buf[i++] = 'p';
-        buf[i++] = 'o';
-        buf[i++] = 'o';
-        buf[i++] = 'p';
-        buf[i++] = ' ';
-    }
-    write_entire_file("out.txt", sizeof(char) * buf_size, buf);
     vector<scoped_file> files;
     for (szt i = 0; i < 10; ++i) {
         files.emplace_back("out.txt");
@@ -55,61 +50,11 @@ internal void app_init(app_state *state)
 
     szt file_i = 0;
     for (auto &f : files) {
-        std::string out_name = "./test/out_" + std::to_string(file_i++) + ".txt";
-        write_entire_file(out_name.c_str(), sizeof(char) * buf_size, buf);
+        string_stream out_name = "./test/out_";
+        out_name.push_back(file_i++);
+        out_name.push_back(".txt");
+        write_entire_file(out_name.to_string(), sizeof(char) * ss.size(), ss.data());
     }
-
-    #define NUM_ITER 100000
-
-    BEGIN_TIMED_BLOCK(std_vec);
-
-    std::vector<s32> std_vec;
-    for (szt i = 0; i < NUM_ITER; ++i) {
-        s32 x = i * i;
-        std_vec.push_back(x);
-    }
-    END_TIMED_BLOCK(std_vec);
-
-    // NOTE: my simple as fuck implementation is 2.5 - 3.0 ish times faster...
-    BEGIN_TIMED_BLOCK(tom_vec);
-    vector<s32> tom_vec;
-    for (szt i = 0; i < NUM_ITER; ++i) {
-        s32 x = i * i;
-        tom_vec.push_back(x);
-    }
-    END_TIMED_BLOCK(tom_vec);
-
-    {
-        BEGIN_TIMED_BLOCK(std_ptr);
-        f64 val = 0.0;
-        for (s32 iter = 0; iter < NUM_ITER; ++iter) {
-            auto foo = std::make_unique<f64>((f64)iter);
-            val += *foo;
-            foo.release();
-        }
-        state->val1 = val;
-
-        END_TIMED_BLOCK(std_ptr);
-    }
-
-    {
-        BEGIN_TIMED_BLOCK(raw_ptr);
-        f64 val = 0.0;
-        for (s32 iter = 0; iter < NUM_ITER; ++iter) {
-            auto *foo = new f64 { (f64)iter };
-            val += *foo;
-            delete foo;
-        }
-        state->val2 = val;
-        END_TIMED_BLOCK(raw_ptr);
-    }
-
-    f32 xt = (f32)state->counters[cycle_counter_raw_ptr].cycle_cnt /
-             (f32)state->counters[cycle_counter_std_ptr].cycle_cnt;
-    printf("raw / std: %f\n", xt);
-    f32 xu = (f32)state->counters[cycle_counter_tom_vec].cycle_cnt /
-             (f32)state->counters[cycle_counter_std_vec].cycle_cnt;
-    printf("tom / std: %f\n", xu);
 
 #endif
 
@@ -301,9 +246,8 @@ internal void app_update(app_state *state)
     if (key_pressed(state->input.keyboard.r)) {
         printf("r\n");
         printf("%d\n", state->input.keyboard.r.half_transition_cnt);
-        
     }
-    
+
     END_TIMED_BLOCK(update);
 }
 

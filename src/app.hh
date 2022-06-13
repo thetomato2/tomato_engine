@@ -8,6 +8,7 @@
 #include "sound.hh"
 #include "camera.hh"
 #include "time.hh"
+#include "string.hh"
 
 namespace tom
 {

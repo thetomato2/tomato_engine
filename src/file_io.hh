@@ -2,6 +2,7 @@
 #define TOMATO_FILE_IO_HH_
 
 #include "core.hh"
+#include "string.hh"
 
 namespace tom
 {
@@ -38,7 +39,9 @@ struct scoped_file
 };
 
 scoped_file read_entire_file(const char *file_path);
-bool write_entire_file(const char *file_path, u64 memory_size, void *memory);
+scoped_file read_entire_file(string file_path);
+bool write_entire_file(const char *file_path, u64 buf_size, void *buf);
+bool write_entire_file(string file_path, u64 buf_size, void *buf);
 
 // NOTE: scoped pointer that uses VirtualAlloc and VirtualFree
 }  // namespace tom

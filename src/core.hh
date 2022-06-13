@@ -27,12 +27,6 @@
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
 
-#if STL_LIB
-    #include <vector>
-    #include <memory>
-    #include <string>
-#endif
-
 // NOTE: for grep purposes
 #define scast(t, v) static_cast<t>(v)
 #define rcast(t, v) reinterpret_cast<t>(v)
@@ -71,11 +65,9 @@ using byt = unsigned char;
 
 using b32 = s32;
 
-#ifdef _WIN32
-using whcar = wchar_t;
+using wchar = wchar_t;
 using ul    = unsigned long;
 using ull   = unsigned long long;
-#endif
 
 static_assert(sizeof(s8) == 1, "s8 isn't 1 byte!");
 static_assert(sizeof(s16) == 2, "s16 isn't 2 byte!s");
@@ -116,7 +108,7 @@ static_assert(sizeof(b32) == 4, "b32 isn't 4 byte!s");
 #define GIGABYTES(val) (MEGABYTES(val) * 1024)
 #define TERABYTES(val) (GIGABYTES(val) * 1024)
 
-#if 1
+#if __cplusplus
 template<typename T, size_t N>
 byt (&ArrayCountHelper(T (&)[N]))[N];
     #define ARRAY_COUNT(arr) (sizeof(ArrayCountHelper(arr)))

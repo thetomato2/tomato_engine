@@ -45,8 +45,12 @@ scoped_file read_entire_file(const char *file_path)
 
     return file;
 }
+scoped_file read_entire_file(string file_path)
+{
+    return read_entire_file(file_path.c_str());
+}
 
-bool write_entire_file(const char *file_path, u64 memory_size, void *memory)
+bool write_entire_file(const char *file_path, u64 buf_size, void *buf)
 {
     scoped_handle file_handle = CreateFileA(file_path, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
     if (!file_handle) {
@@ -55,8 +59,8 @@ bool write_entire_file(const char *file_path, u64 memory_size, void *memory)
     }
 
     DWORD bytes_written;
-    if (WriteFile(file_handle.get(), memory, (DWORD)memory_size, &bytes_written, 0)) {
-        if (bytes_written != memory_size) {
+    if (WriteFile(file_handle.get(), buf, (DWORD)buf_size, &bytes_written, 0)) {
+        if (bytes_written != buf_size) {
             printf("ERROR-> Failed to fully write file contents!\n");
             return false;
         }
@@ -68,19 +72,22 @@ bool write_entire_file(const char *file_path, u64 memory_size, void *memory)
     return true;
 }
 
+bool write_entire_file(string file_path, u64 buf_size, void *buf)
+{
+    return write_entire_file(file_path.c_str(), buf_size, buf);
+}
+
 scoped_file::scoped_file() : data(nullptr)
 {
 }
 
 scoped_file::scoped_file(const char *file_path)
 {
-    printf("Reading file: %s\n", file_path);
     *this = read_entire_file(file_path);
 }
 
 scoped_file::~scoped_file()
 {
-    printf("Freeing file\n");
     VirtualFree(data, 0, MEM_RELEASE);
 }
 

@@ -26,6 +26,17 @@ public:
         _data = malloc(sizeof(T) * _capacity);
     }
 
+    vector(szt capacity)
+    {
+        _capacity = 2;
+        if (capacity > _capacity) _capacity = capacity;
+        _size = 0;
+        // TODO: use new byte[sizeof(T)]?? do I fucking care?
+        // TODO: custom generic memory allocator
+        // TODO: start with no malloc
+        _data = malloc(sizeof(T) * _capacity);
+    }
+
     ~vector() { free(_data); }
 
     // TODO: implement  copy/move constructors
@@ -46,7 +57,7 @@ public:
         resize(lhs.size());
         memcpy(_data, lhs.data(), sizeof(T) * _size);
     }
-    vector(vector &&) = delete;
+    vector(vector &&)            = delete;
     vector &operator=(vector &&) = delete;
 
     void push_back(const T &item)
@@ -203,7 +214,7 @@ public:
         _data = Start;
         memcpy(_data, lhs.data(), sizeof(T) * _size);
     }
-    arena_vector(arena_vector &&) = delete;
+    arena_vector(arena_vector &&)            = delete;
     arena_vector &operator=(arena_vector &&) = delete;
 
     void push_back(const T &item) { reinterpret_cast<T *>(_data)[_size++] = item; }

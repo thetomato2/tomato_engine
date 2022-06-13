@@ -1036,14 +1036,14 @@ inline v3 barycenter(v3 p, v3 a, v3 b, v3 c)
 {
     v3 res;
 
-    v3 v0   = { b.x - a.x, b.y - a.y, b.z - a.z };        // Vector3Subtract(b, a)
-    v3 v1   = { c.x - a.x, c.y - a.y, c.z - a.z };        // Vector3Subtract(c, a)
-    v3 v2   = { p.x - a.x, p.y - a.y, p.z - a.z };        // Vector3Subtract(p, a)
-    f32 d00 = (v0.x * v0.x + v0.y * v0.y + v0.z * v0.z);  // Vector3DotProduct(v0, v0)
-    f32 d01 = (v0.x * v1.x + v0.y * v1.y + v0.z * v1.z);  // Vector3DotProduct(v0, v1)
-    f32 d11 = (v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);  // Vector3DotProduct(v1, v1)
-    f32 d20 = (v2.x * v0.x + v2.y * v0.y + v2.z * v0.z);  // Vector3DotProduct(v2, v0)
-    f32 d21 = (v2.x * v1.x + v2.y * v1.y + v2.z * v1.z);  // Vector3DotProduct(v2, v1)
+    v3 v0   = { b.x - a.x, b.y - a.y, b.z - a.z };
+    v3 v1   = { c.x - a.x, c.y - a.y, c.z - a.z };
+    v3 v2   = { p.x - a.x, p.y - a.y, p.z - a.z };
+    f32 d00 = (v0.x * v0.x + v0.y * v0.y + v0.z * v0.z);
+    f32 d01 = (v0.x * v1.x + v0.y * v1.y + v0.z * v1.z);
+    f32 d11 = (v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);
+    f32 d20 = (v2.x * v0.x + v2.y * v0.y + v2.z * v0.z);
+    f32 d21 = (v2.x * v1.x + v2.y * v1.y + v2.z * v1.z);
 
     f32 denom = d00 * d11 - d01 * d01;
 
