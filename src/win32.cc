@@ -47,6 +47,15 @@ internal window_dims get_window_dimensions(HWND hwnd)
     return win_dim;
 }
 
+string get_cwd()
+{
+    char cwd_buf[MAX_PATH];
+    GetCurrentDirectoryA(MAX_PATH, cwd_buf);
+    string result { cwd_buf };
+
+    return result;
+}
+
 bool dir_exists(const wchar *dir)
 {
     DWORD ftyp = GetFileAttributesW(dir);

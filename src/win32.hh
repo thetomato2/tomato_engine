@@ -33,6 +33,7 @@ void rm_rf_dir(const string &path);
 void create_console();
 void create_window(win32_state *state);
 void process_pending_messages(win32_state *state);
+string get_cwd();
 
 }  // namespace tom
 #endif

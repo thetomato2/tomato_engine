@@ -11,7 +11,7 @@ class scoped_ptr
 {
 public:
     scoped_ptr() : data(nullptr) {}
-    explicit scoped_ptr(T *data) : data(data) {}
+    scoped_ptr(T *data) : data(data) {}
     ~scoped_ptr() { delete data; }
 
     scoped_ptr(std::nullptr_t) : data(nullptr) {}
@@ -45,7 +45,7 @@ public:
     }
 
     // Remove compiler generated copy semantics.
-    scoped_ptr(scoped_ptr const &) = delete;
+    scoped_ptr(scoped_ptr const &)            = delete;
     scoped_ptr &operator=(scoped_ptr const &) = delete;
 
     // Const correct access owned object
@@ -75,6 +75,18 @@ private:
 };
 
 template<typename T>
+T *make_scoped()
+{
+    return new T;
+}
+
+template<typename T, class... Args>
+T *make_scoped(Args const &...args)
+{
+    return new T(args...);
+}
+
+template<typename T>
 void swap(scoped_ptr<T> &lhs, scoped_ptr<T> &rhs)
 {
     lhs.swap(rhs);
@@ -87,7 +99,7 @@ public:
     scoped_handle(HANDLE handle) { _handle = handle; }
     ~scoped_handle() { close(); }
 
-    scoped_handle(const scoped_handle &) = delete;
+    scoped_handle(const scoped_handle &)  = delete;
     void operator=(const scoped_handle &) = delete;
     explicit operator bool() const { return _handle != INVALID_HANDLE_VALUE; }
 
@@ -116,7 +128,7 @@ public:
     ~scoped_search_handle() { close(); }
 
     scoped_search_handle(const scoped_search_handle &) = delete;
-    void operator=(const scoped_search_handle &) = delete;
+    void operator=(const scoped_search_handle &)       = delete;
     explicit operator bool() const { return _handle != INVALID_HANDLE_VALUE; }
 
     HANDLE get() { return _handle; }

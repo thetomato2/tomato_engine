@@ -52,7 +52,6 @@ struct app_state
     f32 ms_frame;
     s32 fps;
     s32 target_fps;
-    cycle_counter counters[cycle_counter_cnt];
     char exe_path[MAX_PATH];
     win32_state win32;
     gfx_state gfx;
@@ -72,12 +71,12 @@ struct app_state
     bool imgui_demo;
     f64 val1, val2;
 
-    struct
-    {
-        m4 world;
-        m4 view;
-        m4 proj;
-    } wvp;
+    m4 world;
+    m4 view;
+    m4 proj;
+    m4 wvp;
+    
+    vector<cycle_counter> counters;
 };
 
 s32 start(HINSTANCE hinst);

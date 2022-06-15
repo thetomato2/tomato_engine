@@ -22,7 +22,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     HRESULT hr = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
     if (FAILED(hr)) return 1;
 
-    s32 ecode = tom::start(hInstance);
+    int ecode = tom::start(hInstance);
 
     CoUninitialize();
 

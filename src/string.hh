@@ -4,11 +4,14 @@
 #include "core.hh"
 #include "vector.hh"
 
+// ============================================================================================
 // Custom string stuff here
 // TODO: float to string converstion -> https://github.com/ulfjack/ryu/tree/master/ryu
 // not a trivial thing to implement, but my Handmade spirit wills me so
 // TODO: c++ stream overload. I don't know if I want to use streams
 // TODO: fix the operator+ overloads and write some tests
+// TODO: small string opmizaitons
+// ============================================================================================
 
 namespace tom
 {
@@ -17,6 +20,7 @@ class string
 {
 public:
     string();
+    string(char c);
     string(const char *str);
     string(char *buf);
     string(char *buf, u32 len);
@@ -28,11 +32,13 @@ public:
     string(string &&other);
     string &operator=(string &&rhs);
 
-    string operator+(const string &rhs);
-    string operator+(const char *rhs);
-    string operator+(char rhs);
+    void append(char c);
+    void append(const char *str);
+    void append(const string &str);
+    void append(const wstring &str);
 
     void clear();
+    void pop_back();
 
     u32 len() const { return _size - 1; }
     const char *c_str() const { return _buf; }
@@ -51,7 +57,15 @@ public:
         return _buf[i];
     }
 
+    friend string operator+(const string &lhs, char rhs);
+    friend string operator+(const string &lhs, const char *rhs);
     friend string operator+(const string &lhs, const string &rhs);
+    friend string operator+(const string &lhs, const wstring &rhs);
+
+    void operator+=(char rhs);
+    void operator+=(const char *rhs);
+    void operator+=(const string &rhs);
+    void operator+=(const wstring &rhs);
 
 private:
     char *_buf;
@@ -63,6 +77,7 @@ class wstring
 {
 public:
     wstring();
+    wstring(wchar c);
     wstring(const wchar *str);
     wstring(wchar *buf);
     wstring(wchar *buf, u32 len);
@@ -74,10 +89,12 @@ public:
     wstring(wstring &&other);
     wstring &operator=(wstring &&rhs);
 
-    wstring operator+(const wstring &rhs);
-    wstring operator+(const wchar *rhs);
-    wstring operator+(wchar rhs);
+    void append(wchar c);
+    void append(const wchar *str);
+    void append(const string &str);
+    void append(const wstring &str);
 
+    void pop_back();
     void clear();
 
     u32 len() const { return _size - 1; }
@@ -85,7 +102,27 @@ public:
     wchar front() const { return _buf[0]; }
     wchar back() const { return _buf[_size - 1]; }
 
+    wchar &operator[](szt i)
+    {
+        TOM_ASSERT(i < _size);
+        return _buf[i];
+    }
+
+    wchar const &operator[](szt i) const
+    {
+        TOM_ASSERT(i < _size);
+        return _buf[i];
+    }
+
+    friend wstring operator+(const wstring &lhs, wchar rhs);
+    friend wstring operator+(const wstring &lhs, const wchar *rhs);
+    friend wstring operator+(const wstring &lhs, const string &rhs);
     friend wstring operator+(const wstring &lhs, const wstring &rhs);
+
+    void operator+=(wchar rhs);
+    void operator+=(const wchar *rhs);
+    void operator+=(const string &rhs);
+    void operator+=(const wstring &rhs);
 
 private:
     wchar *_buf;
@@ -99,6 +136,7 @@ class string_stream
 {
 public:
     string_stream();
+    string_stream(szt capacity) : _buf(capacity) {};
     string_stream(char c);
     string_stream(const char *str);
     string_stream(const string &str);
@@ -131,7 +169,7 @@ public:
     szt size() const { return _buf.size(); }
     szt capacity() const { return _buf.capacity(); }
     bool empty() const { return _buf.empty(); }
-    char back() { _buf.back(); }
+    char &back() { return _buf.back(); }
     void *data() { return (void *)_buf.data(); }
     void *data() const { return (void *)_buf.data(); }
 
@@ -169,6 +207,16 @@ private:
 string operator+(const string &lhs, const string &rhs);
 wstring operator+(const wstring &lhs, const wstring &rhs);
 
+string operator+(const string &lhs, char rhs);
+string operator+(const string &lhs, const char *rhs);
+string operator+(const string &lhs, const string &rhs);
+string operator+(const string &lhs, const wstring &rhs);
+
+wstring operator+(const wstring &lhs, wchar rhs);
+wstring operator+(const wstring &lhs, const wchar *rhs);
+wstring operator+(const wstring &lhs, const string &rhs);
+wstring operator+(const wstring &lhs, const wstring &rhs);
+
 string_stream operator+(const string_stream &lhs, char rhs);
 string_stream operator+(const string_stream &lhs, const char *rhs);
 string_stream operator+(const string_stream &lhs, const string &rhs);
@@ -176,18 +224,23 @@ string_stream operator+(const string_stream &lhs, const wstring &rhs);
 
 string convert_wstring_to_string(const wstring &wstr);
 wstring convert_string_to_wstring(const string &str);
-wstring convert_string_to_wstring_utf8(const string &str);
 string convert_wstring_to_string_utf8(const wstring &wstr);
+wstring convert_string_to_wstring_utf8(const string &str);
 
 string to_string(s8 n);
 string to_string(s16 n);
 string to_string(s32 n);
 string to_string(s64 n);
 
-string to_string(u64 n);
+string to_string(u8 n);
+string to_string(u16 n);
 string to_string(u32 n);
-string to_string(u16 n);
-string to_string(u16 n);
+string to_string(u64 n);
+
+inline void print_str(const string &str)
+{
+    printf("%s\n", str.c_str());
+}
 
 }  // namespace tom
 

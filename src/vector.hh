@@ -10,6 +10,11 @@ namespace tom
 // Simple custom vector class that stores data on the heap
 // Useful for temporary allocations that you don't know the end size of
 // TODO: make this good
+// TODO: use new byte[sizeof(T)]?? do I fucking care?
+// TODO: custom generic memory allocator
+// TODO: start with no malloc
+// TODO: option to use game memory block?
+// TODO:  better grow algorithm?
 // ============================================================================================
 
 template<typename T>
@@ -18,65 +23,78 @@ class vector
 public:
     vector()
     {
-        _capacity = 2;
+        _capacity = 0;
         _size     = 0;
-        // TODO: use new byte[sizeof(T)]?? do I fucking care?
-        // TODO: custom generic memory allocator
-        // TODO: start with no malloc
-        _data = malloc(sizeof(T) * _capacity);
+        _buf      = nullptr;
     }
 
     vector(szt capacity)
     {
-        _capacity = 2;
-        if (capacity > _capacity) _capacity = capacity;
-        _size = 0;
-        // TODO: use new byte[sizeof(T)]?? do I fucking care?
-        // TODO: custom generic memory allocator
-        // TODO: start with no malloc
-        _data = malloc(sizeof(T) * _capacity);
+        _capacity = capacity;
+        _size     = 0;
+        _buf      = malloc(sizeof(T) * _capacity);
     }
 
-    ~vector() { free(_data); }
+    ~vector() { clear(); }
 
-    // TODO: implement  copy/move constructors
     vector(const vector &other)
     {
         _capacity = 2;
         _size     = 0;
-        _data     = malloc(sizeof(T) * _capacity);
+        _buf      = malloc(sizeof(T) * _capacity);
         resize(other.size());
-        memcpy(_data, other.data(), sizeof(T) * _size);
+        memcpy(_buf, other.data(), sizeof(T) * _size);
     }
 
-    vector &operator=(const vector &lhs)
+    vector &operator=(const vector &rhs)
     {
-        _capacity = 2;
-        _size     = 0;
-        _data     = malloc(sizeof(T) * _capacity);
-        resize(lhs.size());
-        memcpy(_data, lhs.data(), sizeof(T) * _size);
+        clear();
+        _capacity = rhs._capacity;
+        _size     = rhs._size;
+        _buf      = malloc(sizeof(T) * _size);
+        memcpy(_buf, rhs.data(), sizeof(T) * _size);
+
+        return *this;
     }
-    vector(vector &&)            = delete;
-    vector &operator=(vector &&) = delete;
+
+    vector(vector &&other)
+    {
+        _size      = other._size;
+        _capacity  = other._capacity;
+        _buf       = other._buf;
+        other._buf = nullptr;
+    }
+
+    vector &operator=(vector &&rhs)
+    {
+        clear();
+        _size     = rhs._size;
+        _capacity = rhs._capacity;
+        _buf      = rhs._buf;
+        rhs._buf  = nullptr;
+
+        return *this;
+    }
 
     void push_back(const T &item)
     {
         if (_size >= _capacity) {
             grow();
         }
-        reinterpret_cast<T *>(_data)[_size++] = item;
+        // reinterpret_cast<T *>(_buf)[_size++] = item;
+        T *loc = &(reinterpret_cast<T *>(_buf)[_size++]);
+        new (loc) T(item);
     }
 
-    T *back()
+    T &back()
     {
         TOM_ASSERT(_size > 0);
-        return reinterpret_cast<T *>(_data) + _size - 1;
+        return *(reinterpret_cast<T *>(_buf) + _size - 1);
     }
 
     void pop_back()
     {
-        if (_size != 0) reinterpret_cast<T *>(_data)[--_size].~T();
+        if (_size != 0) reinterpret_cast<T *>(_buf)[--_size].~T();
     }
 
     template<class... Args>
@@ -85,7 +103,7 @@ public:
         if (_size >= _capacity) {
             grow();
         }
-        T *loc = &(reinterpret_cast<T *>(_data)[_size++]);
+        T *loc = &(reinterpret_cast<T *>(_buf)[_size++]);
         new (loc) T(args...);
     }
 
@@ -96,7 +114,7 @@ public:
         }
 
         if (new_size < _size) {
-            auto data_ptr = reinterpret_cast<T *>(_data);
+            auto data_ptr = reinterpret_cast<T *>(_buf);
             for (szt i = new_size; i < _size; ++i) {
                 data_ptr[i].~T();
             }
@@ -114,70 +132,82 @@ public:
 
     void clear()
     {
-        auto data_ptr = reinterpret_cast<T *>(_data);
-        for (szt i = 0; i < _size; ++i) {
-            data_ptr[i].~T();
+        if (_buf) {
+            auto data_ptr = reinterpret_cast<T *>(_buf);
+            for (szt i = 0; i < _size; ++i) {
+                data_ptr[i].~T();
+            }
+            free(_buf);
+            _buf = nullptr;
         }
-        _size = 0;
+        _size     = 0;
+        _capacity = 0;
     }
 
     szt size() const { return _size; }
     szt capacity() const { return _capacity; }
     bool empty() const { return _size == 0; }
-    void *data() { return (void *)_data; }
-    void *data() const { return (void *)_data; }
+    void *data() { return (void *)_buf; }
+    void *data() const { return (void *)_buf; }
 
-    T *begin() { return reinterpret_cast<T *>(_data); }
-    T *end() { return reinterpret_cast<T *>(_data) + _size; }
-    T const *begin() const { return reinterpret_cast<T *>(_data); }
-    T const *end() const { return reinterpret_cast<T *>(_data) + _size; }
+    T *begin() { return reinterpret_cast<T *>(_buf); }
+    T *end() { return reinterpret_cast<T *>(_buf) + _size; }
+    T const *begin() const { return reinterpret_cast<T *>(_buf); }
+    T const *end() const { return reinterpret_cast<T *>(_buf) + _size; }
 
     T &operator[](szt i)
     {
         TOM_ASSERT(i < _size);
-        return reinterpret_cast<T *>(_data)[i];
+        return reinterpret_cast<T *>(_buf)[i];
     }
 
     T const &operator[](szt i) const
     {
         TOM_ASSERT(i < _size);
-        return reinterpret_cast<T *>(_data)[i];
+        return reinterpret_cast<T *>(_buf)[i];
     }
 
 private:
     void grow()
     {
-        // TODO: option to use game memory block?
-        // TODO:  better grow algorithm?
-        szt new_capacity = _capacity * 2;
+        if (_buf) {
+            szt new_capacity = _capacity * 2;
+            void *new_buf    = malloc(sizeof(T) * new_capacity);
 
-        void *old_storage = _data;
-        void *new_storage = malloc(sizeof(T) * new_capacity);
-        // NOTE: this isn't compeletly safe, ex: the class has a pointer to itself
-        // TODO: object_vector?
-        memcpy(new_storage, old_storage, _size * sizeof(T));
+            // NOTE: this isn't compeletly safe, ex: the class has a pointer to itself
+            void *old_buf = _buf;
+            memcpy(new_buf, old_buf, _size * sizeof(T));
 
-        _data     = new_storage;
-        _capacity = new_capacity;
+            _buf      = new_buf;
+            _capacity = new_capacity;
 
-        free(old_storage);
+            free(old_buf);
+        } else {
+            TOM_ASSERT(_capacity == 0);
+            TOM_ASSERT(_size == 0);
+
+            _capacity = 1;
+            _buf      = malloc(sizeof(T));
+        }
     }
 
     void grow(szt new_capacity)
     {
         if (new_capacity > _capacity) {
-            void *old_storage = _data;
-            void *new_storage = malloc(sizeof(T) * new_capacity);
-            memcpy(new_storage, old_storage, _size * sizeof(T));
+            void *new_buf = malloc(sizeof(T) * new_capacity);
 
-            _data     = new_storage;
+            // NOTE: this isn't compeletly safe, ex: the class has a pointer to itself
+            void *old_buf = _buf;
+            memcpy(new_buf, old_buf, _size * sizeof(T));
+
+            _buf      = new_buf;
             _capacity = new_capacity;
 
-            free(old_storage);
+            free(old_buf);
         }
     }
 
-    void *_data;
+    void *_buf;
     szt _size;
     szt _capacity;
 };

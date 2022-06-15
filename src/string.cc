@@ -22,6 +22,16 @@ internal char parse_digit(s32 d)
     return '\0';
 }
 
+inline bool str_equal(const char *a, const char *b)
+{
+    while (*a && *a == *b) {
+        ++a;
+        ++b;
+    }
+    if (*a != *b) return false;
+    return true;
+}
+
 // TODO: vectorize this
 internal u32 str_len(const char *str)
 {
@@ -141,6 +151,16 @@ internal char *rev_str(const char *str)
     result[len] = '\0';
 
     return result;
+}
+
+internal string_stream rev_ss(const string_stream &ss)
+{
+    string_stream rss(ss.size());
+    for (s32 i = ss.size() - 1; i >= 0; --i) {
+        rss.push_back(ss[i]);
+    }
+
+    return rss;
 }
 
 internal wchar *rev_str(const wchar *str)
@@ -292,6 +312,15 @@ string::string() : _buf(nullptr), _size(0)
 {
 }
 
+string::string(char c)
+{
+    u32 len = 1;
+    _size   = 2;
+    _buf    = (char *)malloc(sizeof(char) * 2);
+    _buf[0] = c;
+    _buf[1] = '\0';
+}
+
 string::string(const char *str)
 {
     u32 len = str_len(str);
@@ -349,65 +378,125 @@ string &string::operator=(string &&rhs)
     return *this;
 }
 
-string string::operator+(const string &rhs)
+void string::append(char c)
+{
+    ++_size;
+    char *temp = _buf;
+    _buf       = str_copy(_buf, c, _size);
+    free(temp);
+}
+
+void string::append(const char *str)
+{
+    _size      = _size + str_len(str) - 1;
+    char *temp = _buf;
+    _buf       = str_copy(_buf, str);
+    free(temp);
+}
+
+void string::append(const string &str)
+{
+    _size      = _size + str._size - 1;
+    char *temp = _buf;
+    _buf       = str_copy(_buf, str._buf, _size - 1, str._size - 1);
+    free(temp);
+}
+
+void string::append(const wstring &wstr)
+{
+    string str = convert_wstring_to_string(wstr);
+    _size      = _size + str._size - 1;
+    char *temp = _buf;
+    _buf       = str_copy(_buf, str._buf, _size - 1, str._size - 1);
+    free(temp);
+}
+
+string operator+(const string &lhs, char rhs)
 {
     string result;
-    // NOTE: this will double the null terminator if we don't minus one
-    result._size = _size + rhs._size - 1;
-    char *temp   = _buf;
-    result._buf  = str_copy(_buf, rhs._buf, _size - 1, rhs._size - 1);
-    free(temp);
+    result._size = lhs._size + 1;
+    result._buf  = str_copy(lhs._buf, rhs, lhs._size);
 
     return result;
 }
 
-string string::operator+(const char *rhs)
+string operator+(const string &lhs, const char *rhs)
 {
     string result;
-    // NOTE: this will double the null terminator if we don't minus one
-    result._size = _size + str_len(rhs) - 1;
-    char *temp   = _buf;
-    result._buf  = str_copy(_buf, rhs);
-    free(temp);
+    result._size = lhs._size + str_len(rhs) - 1;
+    result._buf  = str_copy(lhs._buf, rhs);
 
     return result;
 }
 
-string string::operator+(char rhs)
+string operator+(const string &lhs, const string &rhs)
 {
     string result;
-    // NOTE: this will double the null terminator if we don't minus one
-    result._size = _size + 1;
-    char *temp   = _buf;
-    result._buf  = str_copy(_buf, rhs, _size);
-    free(temp);
+    result._size = lhs._size + rhs._size - 1;
+    result._buf  = str_copy(lhs._buf, rhs._buf, lhs._size - 1, rhs._size - 1);
 
     return result;
 }
 
-wstring wstring::operator+(wchar rhs)
+string operator+(const string &lhs, const wstring &rhs)
 {
-    wstring result;
-    // NOTE: this will double the null terminator if we don't minus one
-    result._size = _size + 1;
-    wchar *temp  = _buf;
-    result._buf  = str_copy(_buf, rhs, _size);
-    free(temp);
+    string result;
+    string str_rhs = convert_wstring_to_string(rhs);
+    result._size   = lhs._size + str_rhs._size - 1;
+    result._buf    = str_copy(lhs._buf, str_rhs._buf, lhs._size - 1, str_rhs._size - 1);
 
     return result;
+}
+
+void string::operator+=(char rhs)
+{
+    append(rhs);
+}
+
+void string::operator+=(const char *rhs)
+{
+    append(rhs);
+}
+
+void string::operator+=(const string &rhs)
+{
+    append(rhs);
+}
+
+void string::operator+=(const wstring &rhs)
+{
+    append(rhs);
 }
 
 void string::clear()
 {
-    if (!_buf) {
+    if (_buf != nullptr) {
         free(_buf);
         _buf = nullptr;
     }
     _size = 0;
 }
 
+void string::pop_back()
+{
+    if (_size > 0) {
+        char *temp = _buf;
+        _buf       = str_copy(_buf, _size - 2);
+        free(temp);
+    }
+}
+
 wstring::wstring() : _buf(nullptr), _size(0)
 {
+}
+
+wstring::wstring(wchar c)
+{
+    u32 len = 1;
+    _size   = 2;
+    _buf    = (wchar *)malloc(sizeof(wchar) * 2);
+    _buf[0] = c;
+    _buf[1] = L'\0';
 }
 
 wstring::wstring(const wchar *str)
@@ -461,74 +550,122 @@ wstring &wstring::operator=(wstring &&rhs)
     return *this;
 }
 
-wstring wstring::operator+(const wstring &rhs)
+void wstring::append(wchar c)
 {
-    wstring result;
-    // NOTE: this will double the null terminator if we don't minus one
-    result._size = _size + rhs._size - 1;
-    wchar *temp  = _buf;
-    result._buf  = str_copy(_buf, rhs._buf, _size - 1, rhs._size - 1);
+    ++_size;
+    wchar *temp = _buf;
+    _buf        = str_copy(_buf, c, _size);
     free(temp);
-
-    return result;
 }
 
-wstring wstring::operator+(const wchar *rhs)
+void wstring::append(const wchar *str)
 {
-    wstring result;
-    // NOTE: this will double the null terminator if we don't minus one
-    result._size = _size + str_len(rhs) - 1;
-    wchar *temp  = _buf;
-    result._buf  = str_copy(_buf, rhs);
+    _size       = _size + str_len(str) - 1;
+    wchar *temp = _buf;
+    _buf        = str_copy(_buf, str);
     free(temp);
+}
 
-    return result;
+void wstring::append(const string &str)
+{
+    wstring wstr = convert_string_to_wstring(str);
+    _size        = _size + wstr._size - 1;
+    wchar *temp  = _buf;
+    _buf         = str_copy(_buf, wstr._buf, _size - 1, wstr._size - 1);
+    free(temp);
+}
+
+void wstring::append(const wstring &wstr)
+{
+    _size       = _size + wstr._size - 1;
+    wchar *temp = _buf;
+    _buf        = str_copy(_buf, wstr._buf, _size - 1, wstr._size - 1);
+    free(temp);
 }
 
 void wstring::clear()
 {
-    if (!_buf) {
+    if (_buf != nullptr) {
         free(_buf);
         _buf = nullptr;
     }
     _size = 0;
 }
 
+wstring operator+(const wstring &lhs, wchar rhs)
+{
+    wstring result;
+    result._size = lhs._size + 1;
+    result._buf  = str_copy(lhs._buf, rhs, lhs._size);
+
+    return result;
+}
+
+wstring operator+(const wstring &lhs, const wchar *rhs)
+{
+    wstring result;
+    result._size = lhs._size + str_len(rhs) - 1;
+    result._buf  = str_copy(lhs._buf, rhs);
+
+    return result;
+}
+
 wstring operator+(const wstring &lhs, const wstring &rhs)
 {
     wstring result;
-    // NOTE: this will double the null terminator if we don't minus one
     result._size = lhs._size + rhs._size - 1;
     result._buf  = str_copy(lhs._buf, rhs._buf, lhs._size - 1, rhs._size - 1);
 
     return result;
 }
 
-string operator+(const string &lhs, const string &rhs)
+wstring operator+(const wstring &lhs, const string &rhs)
 {
-    string result;
-    // NOTE: this will double the null terminator if we don't minus one
-    result._size = lhs._size + rhs._size - 1;
-    result._buf  = str_copy(lhs._buf, rhs._buf, lhs._size - 1, rhs._size - 1);
+    wstring result;
+    wstring str_rhs = convert_string_to_wstring(rhs);
+    result._size    = lhs._size + str_rhs._size - 1;
+    result._buf     = str_copy(lhs._buf, str_rhs._buf, lhs._size - 1, str_rhs._size - 1);
 
     return result;
+}
+
+void wstring::operator+=(wchar rhs)
+{
+    append(rhs);
+}
+
+void wstring::operator+=(const wchar *rhs)
+{
+    append(rhs);
+}
+
+void wstring::operator+=(const string &rhs)
+{
+    append(rhs);
+}
+
+void wstring::operator+=(const wstring &rhs)
+{
+    append(rhs);
 }
 
 string to_string(u64 n)
 {
-    vector<char> buf;
+    string_stream ss;
 
-    while (n > 0) {
-        s32 t = n % 10;
-        buf.push_back(parse_digit(t));
-        n /= 10;
+    if (n == 0llu) {
+        ss.push_back('0');
+    } else {
+        while (n > 0) {
+            s32 t = n % 10;
+            ss.push_back(parse_digit(t));
+            n /= 10;
+        }
+
+        ss = rev_ss(ss);
     }
 
-    buf.push_back('\0');
-
-    string result = rev_str(buf.begin());
-
-    return result;
+    return ss.to_string();
 }
 
 string to_string(s64 n)
@@ -538,20 +675,22 @@ string to_string(s64 n)
         n *= -1;
     }
 
-    vector<char> buf;
+    string_stream ss;
 
-    while (n > 0) {
-        s32 t = n % 10;
-        buf.push_back(parse_digit(t));
-        n /= 10;
+    if (n == 0) {
+        ss.push_back('0');
+    } else {
+        while (n > 0) {
+            s32 t = n % 10;
+            ss.push_back(parse_digit(t));
+            n /= 10;
+        }
+
+        if (neg) ss.push_back('-');
+        ss = rev_ss(ss);
     }
 
-    if (neg) buf.push_back('-');
-    buf.push_back('\0');
-
-    string result = rev_str(buf.begin());
-
-    return result;
+    return ss.to_string();
 }
 
 string to_string(s32 n)

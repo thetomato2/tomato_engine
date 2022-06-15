@@ -46,75 +46,7 @@
     #pragma intrinsic(_BitScanForward)
 #endif
 
-using s8  = int8_t;
-using s16 = int16_t;
-using s32 = int32_t;
-using s64 = int64_t;
-
-using u8  = uint8_t;
-using u16 = uint16_t;
-using u32 = uint32_t;
-using u64 = uint64_t;
-
-using f32 = float;
-using f64 = double;
-
-using szt = size_t;
-using byt = unsigned char;
-// using byt = u8; // TODO: is this different?
-
-using b32 = s32;
-
-using wchar = wchar_t;
-using ul    = unsigned long;
-using ull   = unsigned long long;
-
-static_assert(sizeof(s8) == 1, "s8 isn't 1 byte!");
-static_assert(sizeof(s16) == 2, "s16 isn't 2 byte!s");
-static_assert(sizeof(s32) == 4, "s32 isn't 4 byte!s");
-static_assert(sizeof(s64) == 8, "s64 isn't 8 byte!s");
-static_assert(sizeof(u8) == 1, "u8 isn't 1 byte!");
-static_assert(sizeof(u16) == 2, "u16 isn't 2 byte!s");
-static_assert(sizeof(u32) == 4, "u32 isn't 4 byte!s");
-static_assert(sizeof(u64) == 8, "u64 isn't 8 byte!s");
-static_assert(sizeof(f32) == 4, "f32 isn't 4 byte!s");
-static_assert(sizeof(f64) == 8, "f64 isn't 8 byte!s");
-static_assert(sizeof(b32) == 4, "b32 isn't 4 byte!s");
-
-#define U8_MIN 0u
-#define U8_MAX 0xffu
-#define S8_MIN (-0x7f - 1)
-#define S8_MAX 0x7f
-
-#define U16_MIN 0u
-#define U16_MAX 0xffffu
-#define S16_MIN (-0x7fff - 1)
-#define S16_MAX 0x7fff
-
-#define U32_MIN 0u
-#define U32_MAX 0xffffffffu
-#define S32_MIN (-0x7fffffff - 1)
-#define S32_MAX 0x7fffffff
-
-#define U64_MIN 0ull
-#define U64_MAX 0xffffffffffffffffull
-#define S64_MIN (-0x7fffffffffffffffll - 1)
-#define S64_MAX 0x7fffffffffffffffll
-
-#define BIT(x) (1 << x)
-
-#define KILOBYTES(val) ((val)*1024)
-#define MEGABYTES(val) (KILOBYTES(val) * 1024)
-#define GIGABYTES(val) (MEGABYTES(val) * 1024)
-#define TERABYTES(val) (GIGABYTES(val) * 1024)
-
-#if __cplusplus
-template<typename T, size_t N>
-byt (&ArrayCountHelper(T (&)[N]))[N];
-    #define ARRAY_COUNT(arr) (sizeof(ArrayCountHelper(arr)))
-#else
-    #define ARRAY_COUNT(array) (sizeof((array)) / sizeof((array)[0]))
-#endif
+#include "types.hh"
 
 #define internal static
 #define global   static
@@ -177,6 +109,14 @@ byt (&ArrayCountHelper(T (&)[N]))[N];
 
 namespace tom
 {
+
+#if __cplusplus
+template<typename T, size_t N>
+byt (&ArrayCountHelper(T (&)[N]))[N];
+    #define ARRAY_COUNT(arr) (sizeof(ArrayCountHelper(arr)))
+#else
+    #define ARRAY_COUNT(array) (sizeof((array)) / sizeof((array)[0]))
+#endif
 
 struct thread_context
 {

@@ -6,7 +6,7 @@
 
 namespace tom
 {
-    
+
 // This will automatically free file memory when leaving scope
 struct scoped_file
 {
@@ -21,7 +21,7 @@ struct scoped_file
     scoped_file &operator=(scoped_file &&moving) noexcept;
 
     // Remove compiler generated copy semantics.
-    scoped_file(scoped_file const &) = delete;
+    scoped_file(scoped_file const &)            = delete;
     scoped_file &operator=(scoped_file const &) = delete;
 
     // Access to smart pointer state
@@ -39,9 +39,9 @@ struct scoped_file
 };
 
 scoped_file read_entire_file(const char *file_path);
-scoped_file read_entire_file(string file_path);
+scoped_file read_entire_file(const string &file_path);
 bool write_entire_file(const char *file_path, u64 buf_size, void *buf);
-bool write_entire_file(string file_path, u64 buf_size, void *buf);
+bool write_entire_file(const string &file_path, u64 buf_size, void *buf);
 
 // NOTE: scoped pointer that uses VirtualAlloc and VirtualFree
 }  // namespace tom

@@ -3,6 +3,7 @@
 #include "imgui.hh"
 #include "vector.hh"
 #include "file_io.hh"
+#include "scope.hh"
 
 namespace tom
 {
@@ -10,7 +11,7 @@ namespace tom
 internal void on_resize(app_state *state)
 {
     f32 aspect = scast(f32, state->win32.win_dims.width) / scast(f32, state->win32.win_dims.height);
-    state->wvp.proj = mat::proj_persp(aspect, state->fov, 1.0f, 1000.0f);
+    state->proj = mat::proj_persp(aspect, state->fov, 1.0f, 1000.0f);
 }
 
 internal void app_init(app_state *state)
@@ -18,19 +19,19 @@ internal void app_init(app_state *state)
     state->fov            = 1.0f;
     state->clear_color    = { 0.1f, 0.3f, 0.3f, 1.0f };
     state->vars.unit      = 1.0f;
-    state->imgui_demo     = false;
     state->model_pos      = { 0.0f, 0.0f, -4.0f };
     state->cam            = camera_init();
     state->cam.target_pos = state->model_pos;
     // state->cam_pos.z   = -4.0f;
     // state->cam.pos.z   = -4.0f;
-    state->wvp.view = mat::identity();
-    state->rot_spd  = {};
+    state->view    = mat::identity();
+    state->rot_spd = {};
 
     // state->cam_main = camera_init();
     // state->cam_main.set_pos(state->cam_pos);
     // state->cam_main.speed = 5.0f;
 
+    BEGIN_TIMED_BLOCK(temp1);
 #if 1
 
     string dir = { "./test" };
@@ -57,6 +58,7 @@ internal void app_init(app_state *state)
     }
 
 #endif
+    END_TIMED_BLOCK(temp1);
 
     ID3DBlob *vs_blob, *ps_blob;
     D3DCompileFromFile(L"shaders.hlsl", nullptr, nullptr, "vs_main", "vs_5_0", 0, 0, &vs_blob,
@@ -138,6 +140,9 @@ internal void app_init(app_state *state)
         0.0f, 0.0f, (f32)state->win32.win_dims.width, (f32)state->win32.win_dims.height, 0.0f, 1.0f
     };
 
+    scoped_ptr<s32> test_ptr = make_scoped<s32>(22);
+    printf("%d\n", *test_ptr);
+
     on_resize(state);
 }
 
@@ -148,20 +153,14 @@ internal void app_update(app_state *state)
     ImGui::Begin("Scene");
     ImGui::ColorEdit4("Clear", (f32 *)&state->clear_color.e[0]);
     ImGui::SliderFloat("fov", &state->fov, 0.1f, 3.0f);
-    ImGui::SliderFloat3("Cube Pos", (f32 *)&state->model_pos, -5.0f, 10.0f);
-    ImGui::SliderFloat("rotation speed x", &state->rot_spd.x, 0.0f, 10.0f);
-    ImGui::SliderFloat("rotation speed y", &state->rot_spd.y, 0.0f, 10.0f);
-    ImGui::SliderFloat("rotation speed z", &state->rot_spd.z, 0.0f, 10.0f);
+    if (ImGui::CollapsingHeader("Cube")) {
+        ImGui::Separator();
+        draw_vec3_control("Pos", &state->model_pos);
+        draw_vec3_control("Rot", &state->rot);
+        draw_vec3_control("Rot speed", &state->rot_spd);
+        ImGui::Separator();
+    }
     ImGui::End();
-
-    ImGui::Begin("Camera");
-    imgui_text_v3("pos", state->cam.pos);
-    imgui_text_v3("up", state->cam.up);
-    imgui_text_v3("forward", state->cam.forward);
-    imgui_text_v3("target", state->cam.target_pos);
-    ImGui::End();
-
-    if (state->imgui_demo) ImGui::ShowDemoWindow(&state->imgui_demo);
 
     D3D11_MAPPED_SUBRESOURCE mapped_sub_resource;
 
@@ -190,17 +189,13 @@ internal void app_update(app_state *state)
     m4 rot = mat::rot_z(state->rot.z) * mat::rot_y(state->rot.y) * mat::rot_x(state->rot.x);
     model  = rot * model;
     cons->transform = model;
-    state->wvp.view = state->cam.view();
+    state->view     = state->cam.view();
 
-    m4 wvp = state->wvp.view * state->wvp.proj;
+    state->wvp = state->view * state->proj;
 
     // wvp.e[11] = -1.0f;
     // wvp.e[15] = 4.0f;
-    ImGui::Begin("WVP");
-    imgui_text_m4("view", state->wvp.view);
-    imgui_text_m4("wvp", wvp);
-    ImGui::End();
-    cons->projection = wvp;
+    cons->projection = state->wvp;
     cons->light_v3   = { 1.0f, -1.0f, 1.0f };
 
     state->gfx.device_context->Unmap(state->gfx.const_buf, 0);
@@ -280,7 +275,10 @@ s32 start(HINSTANCE hinst)
 
     TCHAR cwd_buf[MAX_PATH];
     GetCurrentDirectory(MAX_PATH, cwd_buf);
-    _tprintf(TEXT("cwd %s\n"), cwd_buf);
+    // _tprintf(TEXT("cwd %s\n"), cwd_buf);
+
+    string cwd = get_cwd();
+    print_str(cwd);
 
     char *p_ = &state.exe_path[exe_path_len];
     s32 i_   = scast(s32, exe_path_len);
@@ -367,11 +365,35 @@ s32 start(HINSTANCE hinst)
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
+
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;    // Enable Docking
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;  // Enable Multi-Viewport / Platform
+
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
+
+    f32 font_sz = 16.0f;
+    io.Fonts->AddFontFromFileTTF("./fonts/opensans/OpenSans-Bold.ttf", font_sz);
+    io.FontDefault = io.Fonts->AddFontFromFileTTF("./fonts/opensans/OpenSans-Regular.ttf", font_sz);
+
     ImGui_ImplWin32_Init(state.win32.hwnd);
     ImGui_ImplDX11_Init(state.gfx.device, state.gfx.device_context);
-    set_ImGui_style();
+    ImGui::StyleColorsDark();
+    set_ImGui_colors();
+    // set_ImGui_style_1();
 
+    bool imgui_demo     = false;
     state.win32.running = true;
+
+    state.counters                  = init_cycle_counters();
+    constexpr f32 cycle_update_secs = 1.0f;
+    f32 cycle_update_timer          = 0.0f;
+    vector<string> cycle_update_counters;
+    for (auto &counter : state.counters) {
+        cycle_update_counters.emplace_back('0');
+    }
 
     app_init(&state);
 
@@ -427,6 +449,8 @@ s32 start(HINSTANCE hinst)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
+        if (imgui_demo) ImGui::ShowDemoWindow(&imgui_demo);
+
         app_update(&state);
 
         f32 work_secs_avg = 0.0f;
@@ -435,30 +459,119 @@ s32 start(HINSTANCE hinst)
         }
         work_secs_avg /= (f32)ARRAY_COUNT(state.work_secs);
 
-        ImGui::Begin("Cycles");
-        ImGui::Text("tom_vec: %llu", state.counters[cycle_counter_tom_vec].cycle_cnt);
-        ImGui::Text("std_vec: %llu", state.counters[cycle_counter_std_vec].cycle_cnt);
-        ImGui::Text("raw_ptr: %llu", state.counters[cycle_counter_raw_ptr].cycle_cnt);
-        ImGui::Text("std_ptr: %llu", state.counters[cycle_counter_std_ptr].cycle_cnt);
-        ImGui::Text("Update: %llu", state.counters[cycle_counter_update].cycle_cnt);
-        ImGui::Text("total: %llu", state.counters[cycle_counter_total].cycle_cnt);
-        ImGui::End();
+        // TODO: pull this out into a function and put in string.hh
+        auto build_cycle_str = [](u64 n) -> string {
+            string_stream ss;
+            string n_str = to_string(n);
 
-        ImGui::Begin("FPS");
-        ImGui::Text("fps: %d", state.fps);
-        ImGui::Text("frametime: %fms", state.ms_frame);
-        ImGui::Text("work: %fms", work_secs_avg);
-        // NOTE: can't go higher than 144... because of vsync?
-        ImGui::SliderInt("target_fps:", &state.target_fps, 1, 144);
-        ImGui::RadioButton("30", &state.target_fps, 30);
-        ImGui::SameLine();
-        ImGui::RadioButton("60", &state.target_fps, 60);
-        ImGui::SameLine();
-        ImGui::RadioButton("144", &state.target_fps, 144);
-        ImGui::SameLine();
-        ImGui::End();
+            u32 comma = (n_str.len() % 3);
+            if (comma != 0) --comma;
 
-        state.counters[cycle_counter_update].cycle_cnt = 0;
+            for (u32 i = 0; i < n_str.len(); ++i) {
+                ss.push_back(n_str[i]);
+                if (comma == 2) {
+                    ss.push_back(',');
+                    comma = 0;
+                } else {
+                    ++comma;
+                }
+            }
+
+            char c = ss.back();
+            if (ss.back() == ',') {
+                ss.pop_back();
+            }
+
+            return ss.to_string();
+        };
+
+        // NOTE: so I can actually fucking read it
+        cycle_update_timer += state.dt;
+        if (cycle_update_timer > cycle_update_secs) {
+            cycle_update_timer -= cycle_update_secs;
+            cycle_update_counters.clear();
+            for (auto &counter : state.counters) {
+                string counter_str = build_cycle_str(counter.cycle_cnt);
+                cycle_update_counters.emplace_back(counter_str);
+            }
+        }
+
+        ImGui::Begin("Stats");
+
+        if (ImGui::TreeNode("Fps")) {
+            ImGui::Text("fps: %d", state.fps);
+            ImGui::Text("frametime: %fms", state.ms_frame);
+            ImGui::Text("work: %fms", work_secs_avg);
+            // NOTE: can't go higher than 144... because of vsync?
+            ImGui::SliderInt("target_fps:", &state.target_fps, 1, 144);
+            ImGui::RadioButton("30", &state.target_fps, 30);
+            ImGui::SameLine();
+            ImGui::RadioButton("60", &state.target_fps, 60);
+            ImGui::SameLine();
+            ImGui::RadioButton("144", &state.target_fps, 144);
+            ImGui::Separator();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Cycles")) {
+            for (u32 i = 0; i < cycle_counter::type::count; ++i) {
+                ImGui::Text("%s: %s", get_cycle_counter_name((cycle_counter::type)i),
+                            cycle_update_counters[(cycle_counter::type)i].c_str());
+            }
+
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Mouse State")) {
+            if (ImGui::IsMousePosValid())
+                ImGui::Text("Mouse pos: (%g, %g)", io.MousePos.x, io.MousePos.y);
+            else
+                ImGui::Text("Mouse pos: <INVALID>");
+            ImGui::Text("Mouse delta: (%g, %g)", io.MouseDelta.x, io.MouseDelta.y);
+
+            int count = IM_ARRAYSIZE(io.MouseDown);
+            ImGui::Text("Mouse down:");
+            for (int i = 0; i < count; i++)
+                if (ImGui::IsMouseDown(i)) {
+                    ImGui::SameLine();
+                    ImGui::Text("b%d (%.02f secs)", i, io.MouseDownDuration[i]);
+                }
+            ImGui::Text("Mouse clicked:");
+            for (int i = 0; i < count; i++)
+                if (ImGui::IsMouseClicked(i)) {
+                    ImGui::SameLine();
+                    ImGui::Text("b%d (%d)", i, ImGui::GetMouseClickedCount(i));
+                }
+            ImGui::Text("Mouse released:");
+            for (int i = 0; i < count; i++)
+                if (ImGui::IsMouseReleased(i)) {
+                    ImGui::SameLine();
+                    ImGui::Text("b%d", i);
+                }
+            ImGui::Text("Mouse wheel: %.1f", io.MouseWheel);
+            ImGui::Text("Pen Pressure: %.1f", io.PenPressure);  // Note: currently unused
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Camera")) {
+            imgui_text_v3("pos", state.cam.pos);
+            imgui_text_v3("up", state.cam.up);
+            imgui_text_v3("forward", state.cam.forward);
+            imgui_text_v3("target", state.cam.target_pos);
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("WVP")) {
+            imgui_text_m4("view", state.view);
+            imgui_text_m4("wvp", state.wvp);
+            imgui_text_v3("target", state.cam.target_pos);
+            ImGui::TreePop();
+        }
+
+        ImGui::Separator();
+        ImGui::Checkbox("Show Demo", &imgui_demo);
+
+        ImGui::End();
 
         ImGui::Render();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -522,7 +635,8 @@ s32 start(HINSTANCE hinst)
         u64 cycles_elapsed  = end_cycle_count - last_cycle_count;
         last_cycle_count    = end_cycle_count;
 
-        state.counters[cycle_counter_total].cycle_cnt = cycles_elapsed;
+        auto *total_counter      = get_cycle_counter(&state.counters, cycle_counter::type::total);
+        total_counter->cycle_cnt = cycles_elapsed;
     }
 
     ImGui_ImplDX11_Shutdown();

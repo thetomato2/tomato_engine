@@ -45,7 +45,7 @@ scoped_file read_entire_file(const char *file_path)
 
     return file;
 }
-scoped_file read_entire_file(string file_path)
+scoped_file read_entire_file(const string &file_path)
 {
     return read_entire_file(file_path.c_str());
 }
@@ -72,7 +72,7 @@ bool write_entire_file(const char *file_path, u64 buf_size, void *buf)
     return true;
 }
 
-bool write_entire_file(string file_path, u64 buf_size, void *buf)
+bool write_entire_file(const string &file_path, u64 buf_size, void *buf)
 {
     return write_entire_file(file_path.c_str(), buf_size, buf);
 }

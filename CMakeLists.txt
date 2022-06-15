@@ -29,6 +29,7 @@ set(SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(SHADER_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
 set(DATA_DIR ${CMAKE_CURRENT_LIST_DIR}/data)
 set(MESH_DIR ${CMAKE_CURRENT_LIST_DIR}/assets/mesh)
+set(FONT_DIR ${CMAKE_CURRENT_LIST_DIR}/assets/fonts)
 set(TEXTURE_DIR ${CMAKE_CURRENT_LIST_DIR}/assets/images)
 set(EXTERN_DIR ${CMAKE_CURRENT_LIST_DIR}/external)
 # set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
@@ -102,6 +103,10 @@ file(GLOB TEXTURES
     ${MESH_DIR}/*.png
     )
 
+file(GLOB FONTS
+    ${FONT_DIR}/*.ttf
+    )
+
 
 add_library(imgui STATIC
     ${EXTERN_DIR}/imgui/imconfig.h
@@ -142,6 +147,7 @@ add_executable(tomato_engine WIN32
     ${SOURCE_DIR}/graphics.hh
     ${SOURCE_DIR}/graphics.cc
     ${SOURCE_DIR}/imgui.hh
+    ${SOURCE_DIR}/imgui.cc
     ${SOURCE_DIR}/input.hh
     ${SOURCE_DIR}/input.cc
     ${SOURCE_DIR}/intrinsic.hh
@@ -158,6 +164,7 @@ add_executable(tomato_engine WIN32
     ${SOURCE_DIR}/string.cc # wtf cmake
     ${SOURCE_DIR}/stack.hh
     ${SOURCE_DIR}/time.hh
+    ${SOURCE_DIR}/types.hh
     ${SOURCE_DIR}/utils.hh
     ${SOURCE_DIR}/vector.hh
     ${SOURCE_DIR}/win32.hh
@@ -203,6 +210,7 @@ add_custom_command(
     TARGET tomato_engine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADER_DIR} $<TARGET_FILE_DIR:tomato_engine> DEPENDS ${SHADERS}
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${DATA_DIR} $<TARGET_FILE_DIR:tomato_engine>/data DEPENDS ${DATA}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${FONT_DIR} $<TARGET_FILE_DIR:tomato_engine>/fonts DEPENDS ${FONTS}
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${MESH_DIR} $<TARGET_FILE_DIR:tomato_engine>/data DEPENDS ${MESHES}
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${TEXTURE_DIR} $<TARGET_FILE_DIR:tomato_engine>/data DEPENDS ${TEXTURES}
     COMMAND ctime -end ${CMAKE_CURRENT_LIST_DIR}/data/tomato_engine.ctm
